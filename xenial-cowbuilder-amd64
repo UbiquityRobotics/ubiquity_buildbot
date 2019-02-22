@@ -1,5 +1,7 @@
 DISTRIBUTION=xenial
 BASEPATH=/var/cache/pbuilder/xenial.cow
 BUILDRESULT="/var/cache/pbuilder/result/xenial/"
-MIRRORSITE="http://us.archive.ubuntu.com/ubuntu/ xenial main universe multiverse restricted"
-OTHERMIRROR="deb [trusted=yes] http://aptly.ubiquityrobotics.com/ubuntu/building xenial main|deb [trusted=yes] http://build-mirror.ubiquityrobotics.com/ros/ xenial main"
+MIRRORSITE="http://us-east-2.ec2.archive.ubuntu.com/ubuntu xenial main universe multiverse restricted"
+OTHERMIRROR="deb [trusted=yes] http://aptly.ubiquityrobotics.com/ubuntu/building xenial main|deb [trusted=yes] http://packages.ros.org/ros/ubuntu xenial main"
+ARCH=amd64
+
