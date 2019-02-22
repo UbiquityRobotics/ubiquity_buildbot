@@ -3,4 +3,5 @@ BASEPATH=/var/cache/pbuilder/xenial.cow
 BUILDRESULT="/var/cache/pbuilder/result/xenial/"
 MIRRORSITE="http://us-east-2.ec2.ports.ubuntu.com/ubuntu-ports xenial main universe multiverse restricted"
 OTHERMIRROR="deb [trusted=yes] http://aptly.ubiquityrobotics.com/ubuntu/building xenial main pi|deb [trusted=yes] http://packages.ros.org/ros/ubuntu xenial main"
+ARCH=armhf
 
