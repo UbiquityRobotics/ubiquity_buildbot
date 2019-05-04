@@ -1,3 +1,5 @@
 creds/creds.py
 buildwork
 *__pycache__*
+*.pyc
+
