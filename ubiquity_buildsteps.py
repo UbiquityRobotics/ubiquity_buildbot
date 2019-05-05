@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
-from get_creds import creds
+import re
 from buildbot.plugins import *
 
-import re
+from get_creds import creds
+import aptly_steps
 
 def set_deb_properties(name, factory, arch, is_ros=False):
     '''
@@ -22,11 +23,13 @@ def set_deb_properties(name, factory, arch, is_ros=False):
             value=util.Interpolate("/var/cache/pbuilder/result/xenial/ros-kinetic-" + debian_name + "_%(prop:deb_version)s_" + arch +".deb")))
         factory.addStep(steps.SetProperty(property="dsc_path", 
             value=util.Interpolate("../ros-kinetic-" + debian_name + "_%(prop:deb_version)s.dsc")))
+        factory.addStep(steps.SetProperty(property="deb_package_name", value='ros-kinetic-' + debian_name))
     else:
         factory.addStep(steps.SetProperty(property="deb_path", 
             value=util.Interpolate("/var/cache/pbuilder/result/xenial/" + debian_name + "_%(prop:deb_version)s_" + arch +".deb")))  
         factory.addStep(steps.SetProperty(property="dsc_path", 
             value=util.Interpolate("../" + debian_name + "_%(prop:deb_version)s.dsc")))
+        factory.addStep(steps.SetProperty(property="deb_package_name", value=debian_name))
 
 def cowbuilder_test_path(cow_config):
     '''
@@ -65,40 +68,6 @@ def cowbuilder(arch, factory):
     factory.addStep(steps.ShellCommand(command=['sudo', 'cowbuilder', '--configfile', 
         'xenial-cowbuilder', '--build', util.Property('dsc_path')], description="Build Deb"))
 
-def aptly(name, factory):
-    aptly_url = 'https://' + creds.aptly + '@aptly.ubiquityrobotics.com/'
-
-    factory.addStep(steps.ShellSequence(
-        commands = [
-            util.ShellArg(command=['curl', '-X', 'POST', '-F', util.Interpolate('file=@%(prop:deb_path)s'), 
-                aptly_url + 'api/files/' + name
-            ]),
-
-            util.ShellArg(command=['curl', '-X', 'POST', aptly_url + 'api/repos/main-building/file/' + name]),
-
-            util.ShellArg(command=['curl', '-X', 'PUT', aptly_url + 'api/publish/filesystem:www:building/xenial',
-                '-H', "Content-Type: application/json", '--data', "{}"
-            ])
-        ],
-        description='Push deb to building',
-        descriptionDone='Pushed deb to building'
-    ))
-    factory.addStep(steps.ShellSequence(
-        commands = [
-            util.ShellArg(command=['curl', '-X', 'POST', '-F', util.Interpolate('file=@%(prop:deb_path)s'), 
-                aptly_url + 'api/files/' + name
-            ]),
-
-            util.ShellArg(command=['curl', '-X', 'POST', aptly_url + 'api/repos/main-testing/file/' + name]),
-
-            util.ShellArg(command=['curl', '-X', 'PUT', aptly_url + 'api/publish/filesystem:www:ubiquity-testing/xenial',
-            '-H', "Content-Type: application/json", '--data', "{}"
-            ])
-        ],
-        description='Push deb to testing',
-        descriptionDone='Pushed deb to testing'
-    ))
-
 def single_ros_deb(name, release_repo, arch, factory):
     factory.addStep(steps.Git(repourl=release_repo,
                                      branch='debian/kinetic/xenial/%s' % name, method='clobber', mode='full', alwaysUseLatest=True))
@@ -129,3 +98,36 @@ def metapackage_ros_backport_deb(name, packages, release_repo, arch, factory):
     # TODO Topological sort, right now we assume that the packages are already in sorted order
     for package in packages:
         single_ros_backport_deb(package, release_repo, arch, factory)
+
+def aptly(name, factory):
+    aptly_url = 'https://' + creds.aptly + '@aptly.ubiquityrobotics.com/'
+
+    factory.addStep(steps.ShellSequence(
+        commands = [
+            util.ShellArg(command=['curl', '-X', 'POST', '-F', util.Interpolate('file=@%(prop:deb_path)s'), 
+                aptly_url + 'api/files/' + name
+            ]),
+
+            util.ShellArg(command=['curl', '-X', 'POST', aptly_url + 'api/repos/main-building/file/' + name]),
+
+            util.ShellArg(command=['curl', '-X', 'PUT', aptly_url + 'api/publish/filesystem:www:building/xenial',
+                '-H', "Content-Type: application/json", '--data', "{}"
+            ])
+        ],
+        description='Push deb to building',
+        descriptionDone='Pushed deb to building'
+    ))
+
+    query = util.Interpolate('Name (=%(prop:deb_package_name)s), Version (=%(prop:deb_version)s)')
+    factory.addStep(aptly_steps.AptlyCopyPackageStep(aptly_url, 'main-building', 'main-testing', query))
+
+    factory.addStep(steps.ShellSequence(
+        commands = [
+            util.ShellArg(command=['curl', '-X', 'PUT', aptly_url + 'api/publish/filesystem:www:ubiquity-testing/xenial',
+            '-H', "Content-Type: application/json", '--data', "{}"
+            ])
+        ],
+        description='Push deb to testing',
+        descriptionDone='Pushed deb to testing'
+    ))
+
