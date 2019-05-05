@@ -1,18 +1,3 @@
-# This file is part of Buildbot.  Buildbot is free software: you can
-# redistribute it and/or modify it under the terms of the GNU General Public
-# License as published by the Free Software Foundation, version 2.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, write to the Free Software Foundation, Inc., 51
-# Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-# Copyright Buildbot Team Members
-
 from twisted.internet import defer
 from twisted.internet import reactor
 
@@ -20,6 +5,8 @@ from buildbot import config
 from buildbot.process.buildstep import FAILURE
 from buildbot.process.buildstep import SUCCESS
 from buildbot.process.buildstep import BuildStep
+
+from buildbot.plugins import *
 
 import json
 
@@ -58,6 +45,18 @@ def closeSession():
         _session.close()
         _session = None
 
+class AptlyUpdatePublishStep(steps.HTTPStep):
+
+    '''
+    PUT an empty dict to /api/publish/ENDPOINT
+    '''
+    def __init__(self, aptly_base_url, auth, endpoint, **kwargs):
+        super().__init__(
+            aptly_base_url + '/api/publish/' + endpoint,
+            auth=auth, method='PUT', json={},
+            **kwargs
+        )
+
 class AptlyCopyPackageStep(BuildStep):
 
     name = 'AptlyCopyPackageStep'
@@ -66,7 +65,7 @@ class AptlyCopyPackageStep(BuildStep):
     renderables = ["aptly_base_url", "from_repo", "dest_repo", "package_query"]
     session = None
 
-    def __init__(self, aptly_base_url, from_repo, dest_repo, package_query, **kwargs):
+    def __init__(self, aptly_base_url, auth, from_repo, dest_repo, package_query, **kwargs):
         if txrequests is None:
             config.error(
                 "Need to install txrequest to use this step:\n\n pip3 install txrequests")
@@ -75,6 +74,7 @@ class AptlyCopyPackageStep(BuildStep):
         self.from_repo = from_repo
         self.dest_repo = dest_repo
         self.package_query = package_query
+        self.auth = auth
 
         super().__init__(**kwargs)
 
@@ -86,10 +86,10 @@ class AptlyCopyPackageStep(BuildStep):
     def doRequest(self, request_kwargs):
         log = self.getLog('log')
         log.addHeader('Performing %s request to %s\n' %
-                      (request_kwargs.method, request_kwargs.url))
-        if request_kwargs.params:
+                      (request_kwargs['method'], request_kwargs['url']))
+        if 'params' in request_kwargs:
             log.addHeader('Parameters:\n')
-            for k, v in request_kwargs.params:
+            for k, v in request_kwargs['params'].items():
                 log.addHeader('\t%s: %s\n' % (k, v))
 
         try:
@@ -119,6 +119,7 @@ class AptlyCopyPackageStep(BuildStep):
         search_kwargs = {
             'method': 'GET',
             'url': self.aptly_base_url + '/api/repos/' + self.from_repo + '/packages',
+            'auth': self.auth,
             'params': {'q' : self.package_query}
         }
 
@@ -130,6 +131,7 @@ class AptlyCopyPackageStep(BuildStep):
         copy_kwargs = {
             'method': 'POST',
             'url': self.aptly_base_url + '/api/repos/' + self.dest_repo + '/packages',
+            'auth': self.auth,
             'json': {'PackageRefs' : r_search.json()}  
         }
 
@@ -145,6 +147,8 @@ class AptlyCopyPackageStep(BuildStep):
 
         log.addHeader('Request Header:\n')
         for k, v in response.request.headers.items():
+            if k == 'Authorization':
+                v = '[not logging secrets]'
             log.addHeader('\t%s: %s\n' % (k, v))
 
         log.addStdout('URL: %s\n' % response.url)

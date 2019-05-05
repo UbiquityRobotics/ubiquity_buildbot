@@ -16,5 +16,4 @@ GithubSecret = "fake"
 awsPub = "fake"
 awsPriv = "fake"
 
-aptly = "buildbot:fake"
-
+aptly = ("buildbot", "fake")

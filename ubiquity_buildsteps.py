@@ -100,34 +100,34 @@ def metapackage_ros_backport_deb(name, packages, release_repo, arch, factory):
         single_ros_backport_deb(package, release_repo, arch, factory)
 
 def aptly(name, factory):
-    aptly_url = 'https://' + creds.aptly + '@aptly.ubiquityrobotics.com/'
+    aptly_url = 'https://aptly.ubiquityrobotics.com/'
+    aptly_url_creds = 'https://' + creds.aptly[0] + ':' + creds.aptly[1] + '@aptly.ubiquityrobotics.com/'
 
     factory.addStep(steps.ShellSequence(
         commands = [
             util.ShellArg(command=['curl', '-X', 'POST', '-F', util.Interpolate('file=@%(prop:deb_path)s'), 
-                aptly_url + 'api/files/' + name
+                aptly_url_creds + 'api/files/' + name
             ]),
 
-            util.ShellArg(command=['curl', '-X', 'POST', aptly_url + 'api/repos/main-building/file/' + name]),
-
-            util.ShellArg(command=['curl', '-X', 'PUT', aptly_url + 'api/publish/filesystem:www:building/xenial',
-                '-H', "Content-Type: application/json", '--data', "{}"
-            ])
+            util.ShellArg(command=['curl', '-X', 'POST', aptly_url_creds + 'api/repos/main-building/file/' + name])
         ],
         description='Push deb to building',
         descriptionDone='Pushed deb to building'
     ))
+    
+    factory.addStep(aptly_steps.AptlyUpdatePublishStep(
+        aptly_url, creds.aptly,
+        'filesystem:www:building/xenial'
+    ))
 
-    query = util.Interpolate('Name (=%(prop:deb_package_name)s), Version (=%(prop:deb_version)s)')
-    factory.addStep(aptly_steps.AptlyCopyPackageStep(aptly_url, 'main-building', 'main-testing', query))
+    factory.addStep(aptly_steps.AptlyCopyPackageStep(
+        aptly_url, creds.aptly,
+        'main-building', 'main-testing',
+        util.Interpolate('Name (=%(prop:deb_package_name)s), Version (=%(prop:deb_version)s)')
+    ))
 
-    factory.addStep(steps.ShellSequence(
-        commands = [
-            util.ShellArg(command=['curl', '-X', 'PUT', aptly_url + 'api/publish/filesystem:www:ubiquity-testing/xenial',
-            '-H', "Content-Type: application/json", '--data', "{}"
-            ])
-        ],
-        description='Push deb to testing',
-        descriptionDone='Pushed deb to testing'
+    factory.addStep(aptly_steps.AptlyUpdatePublishStep(
+        aptly_url, creds.aptly,
+        'filesystem:www:ubiquity-testing/xenial'
     ))
 
