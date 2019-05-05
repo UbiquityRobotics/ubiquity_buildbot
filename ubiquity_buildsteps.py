@@ -3,6 +3,8 @@
 from get_creds import creds
 from buildbot.plugins import *
 
+import re
+
 def set_deb_properties(name, factory, arch, is_ros=False):
     '''
     This functions sets the dsc_path and deb_path buildbot properties for the build
@@ -26,6 +28,20 @@ def set_deb_properties(name, factory, arch, is_ros=False):
         factory.addStep(steps.SetProperty(property="dsc_path", 
             value=util.Interpolate("../" + debian_name + "_%(prop:deb_version)s.dsc")))
 
+def cowbuilder_test_path(cow_config):
+    '''
+    Returns a path to a file, if that exists then the builder already exists
+    '''
+    envre = re.compile(r'''^([^\s=]+)=(?:[\s"']*)(.+?)(?:[\s"']*)$''')
+    result = {}
+    with open(cow_config) as ins:
+        for line in ins:
+            match = envre.match(line)
+            if match is not None:
+                result[match.group(1)] = match.group(2)
+
+    return result['BASEPATH'] + '/etc/os-release'
+
 def cowbuilder(arch, factory):
     '''
     Uses cowbuilder to build a dsc file into debs.
@@ -33,7 +49,16 @@ def cowbuilder(arch, factory):
     The dsc_path property must be set
     '''
 
-    factory.addStep(steps.FileDownload(mastersrc="cowbuilder/xenial-cowbuilder-%s" % arch, workerdest="xenial-cowbuilder"))
+    cow_config = "cowbuilder/xenial-cowbuilder-%s" % arch
+    cow_test = cowbuilder_test_path(cow_config)
+
+    # Short shell invocation to create the cowbuilder if it doesn't exist already
+    factory.addStep(steps.ShellCommand(
+        command='[ -f {} ] || sudo cowbuilder --create --config {}'.format(cow_test, cow_config),
+        description="Create Cowbuilder"
+    ))
+
+    factory.addStep(steps.FileDownload(mastersrc=cow_config, workerdest="xenial-cowbuilder"))
     factory.addStep(steps.ShellCommand(command=['sudo', 'cowbuilder', '--configfile', 
         'xenial-cowbuilder', '--update'], description="Update Cowbuilder"))
     factory.addStep(steps.ShellCommand(command=['sudo', 'cowbuilder', '--configfile', 
