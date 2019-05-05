@@ -84,6 +84,7 @@ class AptlyCopyPackageStep(BuildStep):
 
     @defer.inlineCallbacks
     def doRequest(self, request_kwargs):
+        log = self.getLog('log')
         log.addHeader('Performing %s request to %s\n' %
                       (request_kwargs.method, request_kwargs.url))
         if request_kwargs.params:
