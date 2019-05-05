@@ -1,0 +1,61 @@
+- hosts: all
+  handlers:
+  - name: restart nginx
+    service: name=nginx state=restarted
+  tasks:
+  - ping:
+  - name: Create build working directory
+    file: path=/opt/buildbot/buildwork/ state=directory mode=0766
+    become: yes
+    become_user: root
+    become_method: sudo
+  - name: Create build creds directory
+    file: path=/opt/buildbot/creds/ state=directory
+    become: yes
+    become_user: root
+    become_method: sudo
+  - name: Load docker_image
+    docker_image:
+      name: rohbotics/ubiquity_buildbot:latest
+      pull: true
+      force: true
+    become: yes
+    become_user: root
+    become_method: sudo
+  - name: Start the docker_container
+    docker_container:
+      name: buildbot
+      image: rohbotics/ubiquity_buildbot:latest
+      volumes:
+        - /opt/buildbot/buildwork:/buildwork
+        - /opt/buildbot/creds:/creds
+      restart_policy: unless-stopped
+      restart: yes
+      network_mode: host
+      env: 
+        BUILDBOT_WORKER_PORT: '9989'
+        BUILDBOT_WEB_URL: 'https://build.ubiquityrobotics.com/'
+        BUILDBOT_WEB_PORT: 'tcp:port=8010'
+        BUILDBOT_CREDS_FILE: '/creds/creds.py'
+      exposed_ports:
+        - 8010
+        - 9989
+  - name: Configure ufw rules
+    ufw: rule={{ item.rule }} port={{ item.port }} proto={{ item.proto }}
+    with_items:
+      - { rule: 'allow', port: '9989', proto: 'tcp' }
+
+  - name: Copy nginx config
+    copy: src=nginx_config dest=/etc/nginx/sites-available/build
+    become: yes
+    become_user: root
+    become_method: sudo
+    notify:
+      - restart nginx
+  - name: Enable Site
+    file:
+      src: "/etc/nginx/sites-available/build"
+      dest: "/etc/nginx/sites-enabled/build"
+      state: link
+    notify:
+      - restart nginx
