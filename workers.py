@@ -58,6 +58,13 @@ workers.append(worker.EC2LatentWorker("tofu", creds.tofu, 't3a.medium',
 
 
 armhf_workers = ["hydrogen", "helium", "lithium", "boron"]
+arm64_workers = ["boron"]
 amd64_workers = ["dasher", "dancer", "prancer"]
 
+
+workers_for_arch = {
+    'armhf' : armhf_workers,
+    'amd64' : amd64_workers,
+    'arm64' : arm64_workers
+}
 
