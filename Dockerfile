@@ -1,6 +1,7 @@
 FROM buildbot/buildbot-master:v2.2.0
 
-RUN pip3 install boto3
+COPY requirements.txt /
+RUN pip3 install -r /requirements.txt
 
 WORKDIR /var/lib/buildbot
 
