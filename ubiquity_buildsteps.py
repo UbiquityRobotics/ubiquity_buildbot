@@ -56,7 +56,7 @@ def cowbuilder(arch, factory):
     
     # Short shell invocation to create the cowbuilder if it doesn't exist already
     factory.addStep(steps.ShellCommand(
-        command='[ -f {} ] || sudo cowbuilder --create --config {}'.format(cow_test, cow_config),
+        command='[ -f {} ] || sudo cowbuilder --create --config {}'.format(cow_test, 'xenial-cowbuilder'),
         description="Create Cowbuilder"
     ))
 
