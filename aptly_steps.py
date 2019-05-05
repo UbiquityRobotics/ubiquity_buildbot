@@ -121,7 +121,7 @@ class AptlyCopyPackageStep(BuildStep):
             'params': {'q' : self.package_query}
         }
 
-        r_search = yield doRequest(search_kwargs)
+        r_search = yield self.doRequest(search_kwargs)
         if (r_search.status_code >= 400):
             self.finished(FAILURE)
             log.finish()
@@ -132,7 +132,7 @@ class AptlyCopyPackageStep(BuildStep):
             'json': {'PackageRefs' : r_search.json()}  
         }
 
-        r_copy = yield doRequest(copy_kwargs)
+        r_copy = yield self.doRequest(copy_kwargs)
         if (r_search.status_code >= 400):
             self.finished(FAILURE)
             log.finish()
