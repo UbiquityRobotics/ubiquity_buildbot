@@ -52,13 +52,14 @@ def cowbuilder(arch, factory):
     cow_config = "cowbuilder/xenial-cowbuilder-%s" % arch
     cow_test = cowbuilder_test_path(cow_config)
 
+    factory.addStep(steps.FileDownload(mastersrc=cow_config, workerdest="xenial-cowbuilder"))
+    
     # Short shell invocation to create the cowbuilder if it doesn't exist already
     factory.addStep(steps.ShellCommand(
         command='[ -f {} ] || sudo cowbuilder --create --config {}'.format(cow_test, cow_config),
         description="Create Cowbuilder"
     ))
 
-    factory.addStep(steps.FileDownload(mastersrc=cow_config, workerdest="xenial-cowbuilder"))
     factory.addStep(steps.ShellCommand(command=['sudo', 'cowbuilder', '--configfile', 
         'xenial-cowbuilder', '--update'], description="Update Cowbuilder"))
     factory.addStep(steps.ShellCommand(command=['sudo', 'cowbuilder', '--configfile', 
