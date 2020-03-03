@@ -18,7 +18,7 @@ workers.append(worker.Worker("dancer", creds.dancer))
 ## AWS based ARM builders
 workers.append(worker.EC2LatentWorker("boron", creds.boron, 'a1.medium', 
                     region="us-east-2",
-                    ami="ami-0a943ada6c1b11979", 
+                    ami="ami-0f8436cc7d6daabdd", 
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
