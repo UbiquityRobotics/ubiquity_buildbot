@@ -1,4 +1,4 @@
-FROM buildbot/buildbot-master:v2.2.0
+FROM buildbot/buildbot-master:v2.7.0
 
 COPY requirements.txt /
 RUN pip3 install -r /requirements.txt
