@@ -23,9 +23,9 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'a1.medium',
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
                     security_name="awsBuildbots", 
-                    spot_instance=True,
-                    max_spot_price=0.015,
-                    price_multiplier=None,
+#                    spot_instance=True,
+#                    max_spot_price=0.015,
+#                    price_multiplier=None,
                     max_builds=1
 ))
 
@@ -38,9 +38,9 @@ workers.append(worker.EC2LatentWorker("prancer", creds.prancer, 'm5.large',
                     secret_identifier=creds.awsPriv,
                     keypair_name='awsBuildbots',
                     security_name="awsBuildbots",
-                    spot_instance=True,
-                    max_spot_price=0.028,
-                    price_multiplier=None,
+#                    spot_instance=True,
+#                    max_spot_price=0.028,
+#                    price_multiplier=None,
                     max_builds=1
 ))
 
