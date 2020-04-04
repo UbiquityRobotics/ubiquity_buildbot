@@ -10,6 +10,7 @@ COPY . .
 # Setup volumes for building and credentials
 VOLUME /buildwork
 VOLUME /creds
+VOLUME /certs
 
 CMD ["dumb-init", "/usr/src/buildbot/docker/start_buildbot.sh"]
 

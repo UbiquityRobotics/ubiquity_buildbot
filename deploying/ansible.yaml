@@ -29,6 +29,7 @@
       volumes:
         - /opt/buildbot/buildwork:/buildwork
         - /opt/buildbot/creds:/creds
+        - /etc/letsencrypt/:/certs
       restart_policy: unless-stopped
       restart: yes
       network_mode: host
