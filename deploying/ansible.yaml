@@ -16,7 +16,7 @@
     become_method: sudo
   - name: Load docker_image
     docker_image:
-      name: rohbotics/ubiquity_buildbot:latest
+      name: registry.digitalocean.com/ubiquityrobotics/ubiquity_buildbot:latest
       pull: true
       force: true
     become: yes
@@ -25,7 +25,7 @@
   - name: Start the docker_container
     docker_container:
       name: buildbot
-      image: rohbotics/ubiquity_buildbot:latest
+      image: registry.digitalocean.com/ubiquityrobotics/ubiquity_buildbot:latest
       volumes:
         - /opt/buildbot/buildwork:/buildwork
         - /opt/buildbot/creds:/creds
