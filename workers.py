@@ -3,6 +3,7 @@
 from get_creds import creds
 
 from buildbot.plugins import *
+import base64
 
 workers = []
 
@@ -61,7 +62,7 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
                     max_spot_price=0.02,
                     price_multiplier=None,
                     max_builds=1,
-                    user_data=cloud_init_script.format("boron", creds.boron, "m6g.medium"),
+                    user_data=str(base64.b64encode(cloud_init_script.format("boron", creds.boron, "m6g.medium")), "ascii"),
                     block_device_map= [
                         {
                             "DeviceName": "/dev/sda1",
@@ -85,7 +86,7 @@ workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium'
                     max_spot_price=0.02,
                     price_multiplier=None,
                     max_builds=1,
-                    user_data=cloud_init_script.format("beryllium", creds.beryllium, "m6g.medium"),
+                    user_data=str(base64.b64encode(cloud_init_script.format("beryllium", creds.beryllium, "m6g.medium")), "ascii"),
                     block_device_map= [
                         {
                             "DeviceName": "/dev/sda1",
