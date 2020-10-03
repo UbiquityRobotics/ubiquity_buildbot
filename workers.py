@@ -16,19 +16,18 @@ workers.append(worker.Worker("dasher", creds.dasher))
 workers.append(worker.Worker("dancer", creds.dancer))
 
 ## AWS based ARM builders
-workers.append(worker.EC2LatentWorker("boron", creds.boron, 'a1.medium', 
+workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium', 
                     region="us-east-2",
-                    ami="ami-06a0e94499ba89903", 
+                    ami="ami-093f38135dec8d53f", 
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
                     security_name="awsBuildbots", 
-#                    spot_instance=True,
-#                    max_spot_price=0.015,
-#                    price_multiplier=None,
+                    spot_instance=True,
+                    max_spot_price=0.02,
+                    price_multiplier=None,
                     max_builds=1
 ))
-
 
 # AWS Intel Builders
 workers.append(worker.EC2LatentWorker("prancer", creds.prancer, 'm5.large',
