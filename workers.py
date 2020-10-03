@@ -51,6 +51,7 @@ sudo systemctl enable buildbot-worker.service
 sudo systemctl start buildbot-worker.service
 '''
 
+boron_cloud_init_script = cloud_init_script.format("boron", creds.boron, "m6g.medium")
 workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium', 
                     region="us-east-2",
                     ami="ami-031cd6d993a2b9990", 
@@ -62,7 +63,7 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
                     max_spot_price=0.02,
                     price_multiplier=None,
                     max_builds=1,
-                    user_data=str(base64.b64encode(cloud_init_script.format("boron", creds.boron, "m6g.medium")), "ascii"),
+                    user_data=base64.b64encode(boron_cloud_init_script.encode("utf-8")).decode("ascii"),
                     block_device_map= [
                         {
                             "DeviceName": "/dev/sda1",
@@ -75,6 +76,7 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
                     ]
 ))
 
+beryllium_cloud_init_script = cloud_init_script.format("beryllium", creds.beryllium, "m6g.medium")
 workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium', 
                     region="us-east-2",
                     ami="ami-031cd6d993a2b9990", 
@@ -86,7 +88,7 @@ workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium'
                     max_spot_price=0.02,
                     price_multiplier=None,
                     max_builds=1,
-                    user_data=str(base64.b64encode(cloud_init_script.format("beryllium", creds.beryllium, "m6g.medium")), "ascii"),
+                    user_data=base64.b64encode(beryllium_cloud_init_script.encode("utf-8")).decode("ascii"),
                     block_device_map= [
                         {
                             "DeviceName": "/dev/sda1",
@@ -129,8 +131,8 @@ workers.append(worker.EC2LatentWorker("tofu", creds.tofu, 't3a.medium',
 ))
 
 
-armhf_workers = ["hydrogen", "helium", "lithium", "boron"]
-arm64_workers = ["boron"]
+armhf_workers = ["hydrogen", "helium", "lithium", "boron", "beryllium"]
+arm64_workers = ["boron", "beryllium"]
 amd64_workers = ["dasher", "dancer", "prancer"]
 
 
