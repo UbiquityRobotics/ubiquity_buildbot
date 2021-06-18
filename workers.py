@@ -18,8 +18,12 @@ workers.append(worker.Worker("dancer", creds.dancer))
 
 ## AWS based ARM builders
 cloud_init_script ='''#!/bin/bash
-source sandbox/bin/activate
-buildbot-worker create-worker --use-tls --maxretries 10 worker build.ubiquityrobotics.com {} "{}"
+
+sudo apt-get update
+
+>&2 echo "Configuring buildbot"
+cd /var/lib/buildbot
+sudo -u ubuntu bash -c 'source sandbox/bin/activate; buildbot-worker create-worker --use-tls --maxretries 10 worker build.ubiquityrobotics.com {} "{}"'
 
 sudo sh -c "cat <<EOM >/etc/systemd/system/buildbot-worker.service
 # This template file assumes the buildbot worker lives in a subdirectory od
@@ -59,11 +63,11 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
                     security_name="awsBuildbots", 
-                    spot_instance=True,
-                    max_spot_price=0.02,
-                    price_multiplier=None,
+                    #spot_instance=True,
+                    #max_spot_price=0.02,
+                    #price_multiplier=None,
                     max_builds=1,
-                    user_data=base64.b64encode(boron_cloud_init_script.encode("utf-8")).decode("ascii"),
+                    user_data=boron_cloud_init_script,
                     block_device_map= [
                         {
                             "DeviceName": "/dev/sda1",
@@ -84,11 +88,11 @@ workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium'
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
                     security_name="awsBuildbots", 
-                    spot_instance=True,
-                    max_spot_price=0.02,
-                    price_multiplier=None,
+                    #spot_instance=True,
+                    #max_spot_price=0.02,
+                    #price_multiplier=None,
                     max_builds=1,
-                    user_data=base64.b64encode(beryllium_cloud_init_script.encode("utf-8")).decode("ascii"),
+                    user_data=beryllium_cloud_init_script,
                     block_device_map= [
                         {
                             "DeviceName": "/dev/sda1",
