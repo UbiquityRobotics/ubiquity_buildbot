@@ -1,0 +1,8 @@
+DISTRIBUTION=focal
+BASEPATH=/var/cache/pbuilder/focal-arm64.cow
+BUILDRESULT="/var/cache/pbuilder/result/focal/"
+MIRRORSITE="http://us-east-2.ec2.ports.ubuntu.com/ubuntu-ports focal main universe multiverse restricted"
+OTHERMIRROR="deb http://aptly.ubiquityrobotics.com/ubuntu/building focal main pi|deb http://packages.ros.org/ros/ubuntu focal main"
+APTKEYRINGS=(./ubiquity-archive-keyring.gpg  ./ros-archive-keyring.gpg)
+ARCH=arm64
+
