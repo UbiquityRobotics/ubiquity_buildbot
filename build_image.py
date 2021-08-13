@@ -280,11 +280,15 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
         f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
     with open("/etc/ubiquity/ros_setup.sh", "w+") as f:
         f.write(". /opt/ros/noetic/setup.sh\n")
-        f.write("catkin_setup=/home/ubuntu/catkin_ws/devel/setup.sh && test -f $catkin_setup && . $catkin_setup\n")
+        f.write(
+            "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.sh && test -f $catkin_setup && . $catkin_setup\n"
+        )
         f.write(". /etc/ubiquity/env.sh\n")
     with open("/etc/ubiquity/ros_setup.bash", "w+") as f:
         f.write("source /opt/ros/noetic/setup.bash\n")
-        f.write("catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n")
+        f.write(
+            "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
+        )
         f.write("source /etc/ubiquity/env.sh\n")
 
     # Source ROS environment in the default bashrc for new users before creating the ubuntu user
@@ -370,7 +374,7 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
     # We don't want to notify about LTS upgrades because running that upgrade usually breaks ROS
     subprocess.run(["chmod", "-x", "/etc/update-motd.d/91-release-upgrade"], check=True)
     with open("/etc/update-motd.d/50-ubiquity", "w+") as f:
-        motd="""#!/bin/sh
+        motd = """#!/bin/sh
 
 echo ""
 echo "Welcome to the Ubiquity Robotics Raspberry Pi Image"
@@ -381,6 +385,13 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
 """
         f.write(motd)
     subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
+
+    # Locales, ugly shell to generate all English UTF-8 locales
+    subprocess.run(
+        "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs -L 1 locale-gen",
+        shell=True,
+        check=True,
+    )
 
     chroot_cleanup()
 
