@@ -202,15 +202,15 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
     apt_update()
     apt_upgrade()
 
-    # Do all of the apt installs upfront because it is slightly faster, and allows to 
-    # potentially do something smarter with debootstrap in the future, like extract all
-    # the packages before chrooting like what debootstrap does.
+    # Do all of the apt installs upfront because it is slightly faster, and allows
+    # us to potentially do something smarter in the future, like extract all the
+    # packages before chrooting like debootstrap does.
     apt_install_packages(
         [
             # Base metapackages for ubuntu
             "ubuntu-minimal",
             "ubuntu-standard",
-            #"ubuntu-server",
+            # "ubuntu-server",
             # APT Keys, in a package for easy potential updates
             "ubiquity-archive-keyring",
             # Common utilities
@@ -260,8 +260,8 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
             "ros-noetic-move-basic",
             "ros-noetic-fiducials",
             "ros-noetic-magni-robot",
-            "cairosvg", # Required but not properly installed by fiducals
-            "poppler-utils", # Required but not properly installed by fiducals
+            "cairosvg",  # Required but not properly installed by fiducals
+            "poppler-utils",  # Required but not properly installed by fiducals
         ]
     )
 
@@ -271,7 +271,6 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
 
     shutil.copy("/files/adduser.local", "/usr/local/sbin/adduser.local")
     linux_util.make_executable("/usr/local/sbin/adduser.local")
-    
 
     # Setup the robot config
     os.makedirs("/etc/ubiquity", exist_ok=True)
@@ -279,13 +278,19 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
     with open("/etc/ubiquity/env.sh", "w+") as f:
         f.write("export ROS_HOSTNAME=$(hostname).local\n")
         f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
+    with open("/etc/ubiquity/ros_setup.sh", "w+") as f:
+        f.write(". /opt/ros/noetic/setup.sh\n")
+        f.write("catkin_setup=/home/ubuntu/catkin_ws/devel/setup.sh && test -f $catkin_setup && . $catkin_setup\n")
+        f.write(". /etc/ubiquity/env.sh\n")
+    with open("/etc/ubiquity/ros_setup.bash", "w+") as f:
+        f.write("source /opt/ros/noetic/setup.bash\n")
+        f.write("catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n")
+        f.write("source /etc/ubiquity/env.sh\n")
 
     # Source ROS environment in the default bashrc for new users before creating the ubuntu user
     with open("/etc/skel/.bashrc", "a") as f:
         ros_source = "\n"
-        ros_source += "source /opt/ros/noetic/setup.bash\n"
-        ros_source += "catkin_setup=$HOME/catkin_ws/devel/setup.bash && test -f $catkin_setup && source $catkin_setup\n\n"
-        ros_source += "source /etc/ubiquity/env.sh\n"
+        ros_source += "source /etc/ubiquity/ros_setup.bash\n"
         f.write(ros_source)
 
     linux_util.create_user("ubuntu", "ubuntu")
@@ -303,13 +308,13 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
         "ubuntu",
         ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_init_workspace"],
         cwd="/home/ubuntu/catkin_ws/src",
-        check=True
+        check=True,
     )
     linux_util.run_as_user(
         "ubuntu",
         ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make"],
         cwd="/home/ubuntu/catkin_ws",
-        check=True
+        check=True,
     )
 
     setup_networking(hostname)
@@ -343,7 +348,10 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
     shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
 
     # Copy device tree overlay for pifi buttons
-    shutil.copy("/device-tree/ubiquity-led-buttons.dtbo", "/boot/overlays/ubiquity-led-buttons.dtbo")
+    shutil.copy(
+        "/device-tree/ubiquity-led-buttons.dtbo",
+        "/boot/overlays/ubiquity-led-buttons.dtbo",
+    )
 
     # Enable pigpio daemon that we use for sonars
     subprocess.run(["systemctl", "enable", "pigpiod.service"], check=True)
@@ -352,9 +360,27 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
     subprocess.run(["systemctl", "enable", "systemd-networkd.service"], check=True)
 
     # Enable auto-starting magni-base
-    shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service") 
+    shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service")
     subprocess.run(["systemctl", "enable", "roscore.service"], check=True)
     subprocess.run(["systemctl", "enable", "magni-base.service"], check=True)
+
+    # Customize Message of The Day that shows up at login
+    # We don't want to link to Ubuntu's help documents (because we are heavily modified)
+    subprocess.run(["chmod", "-x", "/etc/update-motd.d/10-help-text"], check=True)
+    # We don't want to notify about LTS upgrades because running that upgrade usually breaks ROS
+    subprocess.run(["chmod", "-x", "/etc/update-motd.d/91-release-upgrade"], check=True)
+    with open("/etc/update-motd.d/50-ubiquity", "w+") as f:
+        motd="""#!/bin/sh
+
+echo ""
+echo "Welcome to the Ubiquity Robotics Raspberry Pi Image"
+echo "Learn more: https://learn.ubiquityrobotics.com"
+echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
+echo ""
+echo "Wifi can be managed with pifi (pifi --help for more info)"
+"""
+        f.write(motd)
+    subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
 
     chroot_cleanup()
 
