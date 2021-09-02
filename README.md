@@ -9,12 +9,8 @@ Python dependencies:
 and additionaly you need to install debootstrap tool: <br>
 
 - Download latest debian package from: 
-
-      https://deb.debian.org/debian/pool/main/d/debootstrap/
   
-- Install the package by typing:
-
-      dpkg -i debootstrap_X.X.X_all.deb
+      sudo apt install debootstrap 
   
 ## How to run
 
