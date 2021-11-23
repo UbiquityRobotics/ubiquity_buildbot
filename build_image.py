@@ -34,6 +34,9 @@ def apt_update():
 def apt_upgrade():
     subprocess.run(["apt-get", "-yy", "upgrade"], check=True)
 
+def ssl_update():
+    subprocess.run(["apt-get", "install", "pt-transport-https", "ca-certificates", "-y"], check=True)
+    subprocess.run(["update-ca-certificates"], check=True)
 
 def apt_install_packages(
     package_list: typing.List[str],
@@ -199,6 +202,7 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
     ubuntu_apt_sources(use_local_mirror=True)
     ros_apt_sources()
     ubiquity_apt_sources()
+    ssl_update()
     apt_update()
     apt_upgrade()
 
@@ -260,6 +264,8 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
             "ros-noetic-move-basic",
             "ros-noetic-fiducials",
             "ros-noetic-magni-robot",
+            "ros-noetic-teleop-twist-keyboard",
+            "ros-noetic-carrot-planner", # Required but not properly installed by magni-robot
             "cairosvg",  # Required but not properly installed by fiducals
             "poppler-utils",  # Required but not properly installed by fiducals
         ]
@@ -290,6 +296,9 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
             "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
         )
         f.write("source /etc/ubiquity/env.sh\n")
+
+    # Make modifying the configs available to UI apps, and less of a hassle in general
+    subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
 
     # Source ROS environment in the default bashrc for new users before creating the ubuntu user
     with open("/etc/skel/.bashrc", "a") as f:
@@ -393,6 +402,11 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
         check=True,
     )
 
+    # The file is missing on Focal by default, compared to Xenial, so chroot throws weird errors
+    # On the Xenial image the file's content is one entry: /usr/lib/arm-linux-gnueabihf/libarmmem.so
+    # It's unclear what it does, if it should be added here as well or not, but leaving the file empty seems to be enough to clear up chroot errors
+    subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
+
     chroot_cleanup()
 
 
@@ -402,8 +416,9 @@ shutil.rmtree("/focal-build/focal-build")
 # Calculate size of rootfs
 rootfs_size = linux_util.du_mb(rootfs)
 print(f"Root FS is {rootfs_size} MiB")
-# Leave 200 MiB free space in the root partition
-root_part_size = rootfs_size + 200
+
+# Leave 500 MiB free space in the root partition
+root_part_size = rootfs_size + 500
 print(f"Root Part will be {root_part_size} MiB")
 
 # Make image file
