@@ -34,6 +34,9 @@ def apt_update():
 def apt_upgrade():
     subprocess.run(["apt-get", "-yy", "upgrade"], check=True)
 
+def ssl_update():
+    subprocess.run(["apt-get", "install", "pt-transport-https", "ca-certificates", "-y"], check=True)
+    subprocess.run(["update-ca-certificates"], check=True)
 
 def apt_install_packages(
     package_list: typing.List[str],
@@ -199,6 +202,7 @@ with Chroot(rootfs, mountpoints=chroot_mountpoints):
     ubuntu_apt_sources(use_local_mirror=True)
     ros_apt_sources()
     ubiquity_apt_sources()
+    ssl_update()
     apt_update()
     apt_upgrade()
 
