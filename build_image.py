@@ -30,12 +30,11 @@ local_ros_mirror = "http://packages.ros.org/ros/ubuntu"
 def apt_update():
     subprocess.run(["apt-get", "update"], check=True)
 
-
 def apt_upgrade():
     subprocess.run(["apt-get", "-yy", "upgrade"], check=True)
 
 def ssl_update():
-    subprocess.run(["apt-get", "install", "pt-transport-https", "ca-certificates", "-y"], check=True)
+    subprocess.run(["apt-get", "install", "ca-certificates", "-y"], check=True)
     subprocess.run(["update-ca-certificates"], check=True)
 
 def apt_install_packages(
