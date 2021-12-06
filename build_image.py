@@ -136,7 +136,6 @@ def chroot_cleanup():
     subprocess.run(["apt-get", "clean"], check=True)
     subprocess.run(["rm", "-rf", "/var/lib/apt/lists"], check=False)
 
-
 def setup_networking(hostname: str):
     with open("/etc/hostname", "w+") as f:
         f.write(f"{hostname}\n")
@@ -198,10 +197,11 @@ chroot_mountpoints = {
 }
 
 with Chroot(rootfs, mountpoints=chroot_mountpoints):
-    ubuntu_apt_sources(use_local_mirror=True)
-    ros_apt_sources()
-    ubiquity_apt_sources()
-    ssl_update()
+    ubuntu_apt_sources(use_local_mirror=True) #add ubuntu apt sources
+    apt_update() # update ubuntu apt sources first and sync time
+    ros_apt_sources() #add ros apt sources
+    ubiquity_apt_sources() #add ubiquity apt sources
+    ssl_update() #update ssl certificates if need be
     apt_update()
     apt_upgrade()
 
@@ -407,7 +407,6 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
     subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
 
     chroot_cleanup()
-
 
 # Something is creating a file that is in focal-build/focal-build, we want to get rid of it
 shutil.rmtree("/focal-build/focal-build")
