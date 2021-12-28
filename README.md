@@ -18,4 +18,12 @@ You need to run using root privileges:
 
     sudo python3 build_image.py
   
-It will take a while, so you might as well grab a coffee :)
+This will run `build_image.py` with default settings taken from `default-build-settings.yaml`. To redirect it to another config file, do 
+
+    sudo python3 build_image.py --config_path PATH_TO_CONFIG/CONFIG.yaml
+
+To see other available options run:
+
+    python3 build_image.py -h
+
+In any case, the build will take a while, so you might as well grab a coffee :)
