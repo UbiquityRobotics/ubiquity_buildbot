@@ -522,9 +522,12 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
     else:
         print("Skipping compression of image")
 
+    print("Overwriting latest_image with: "+imagedir+"/"+image)
     # overwrite latest_image the name of the latest image for buildbot to be able to upload
     f = open("latest_image", "w")
     f.write(imagedir+"/"+image)
+
+    print("Image build successfully")
 
 if __name__ == "__main__":
     main()
