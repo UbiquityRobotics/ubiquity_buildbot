@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import re
+import time
 from buildbot.plugins import *
 
 from get_creds import creds
@@ -114,14 +115,15 @@ def aptly(distro, name, factory):
         building_repo = "main-building"
         testing_repo = "main-testing"
         
+    dir_name = f"{distro}__{name}"
 
     factory.addStep(steps.ShellSequence(
         commands = [
             util.ShellArg(command=['curl', '-X', 'POST', '-F', util.Interpolate('file=@%(prop:deb_path)s'), 
-                aptly_url_creds + 'api/files/' + name
+                aptly_url_creds + 'api/files/' + dir_name
             ]),
 
-            util.ShellArg(command=['curl', '-X', 'POST', aptly_url_creds + f'api/repos/{building_repo}/file/' + name])
+            util.ShellArg(command=['curl', '-X', 'POST', aptly_url_creds + f'api/repos/{building_repo}/file/' + dir_name])
         ],
         description='Push deb to building',
         descriptionDone='Pushed deb to building'
