@@ -481,7 +481,7 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
         subprocess.run(["mkdir", "-p", imagedir], check=True)
 
     # remove image file if it already exsists
-    if not os.path.exists(imagedir+"/"+image):
+    if os.path.exists(imagedir+"/"+image):
         os.remove(imagedir+"/"+image)
 
     # create image file
