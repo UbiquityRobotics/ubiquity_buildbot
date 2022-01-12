@@ -1,0 +1,18 @@
+flavour: "ubiquity-lxde"
+
+release: "focal"
+
+version: "20.04.2"
+
+#image name will be constucted:
+# ${timestamp}-${flavour}-${release}-raspberry-pi.img
+
+imagedir: /image-builds/final-images
+
+rootfs: /image-builds/PiFlavourMaker/focal-build
+
+rootfs_extra_space_mb: 500
+
+image_hostname: ubiquityrobot
+
+username: ubuntu
