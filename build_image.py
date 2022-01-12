@@ -220,7 +220,7 @@ def main():
             imagedir = conf["imagedir"]
             rootfs_extra_space_mb = conf["rootfs_extra_space_mb"]
     except Exception as e:
-        print("Error reading " + py_arguments.yaml_path)
+        print("Error reading " + py_arguments.config_path)
         print(e)
 
     print("=========================================")
