@@ -526,6 +526,7 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
     # overwrite latest_image the name of the latest image for buildbot to be able to upload
     f = open("latest_image", "w")
     f.write(imagedir+"/"+image)
+    feedback_popen("chmod a+r latest_image", os.getcwd())
 
     print("Image build successfully")
 
