@@ -5,6 +5,7 @@ import subprocess
 import shutil
 import crypt
 from contextlib import contextmanager
+import time
 from pychroot import Chroot
 import typing
 from typing import Iterator
@@ -527,8 +528,12 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
     f = open("latest_image", "w")
     f.write(imagedir+"/"+image)
     feedback_popen("chmod a+r latest_image", os.getcwd())
+    f.close()
 
     print("Image build successfully")
+
+    print("Sleeping a bit")
+    time.sleep(1)
 
 if __name__ == "__main__":
     main()
