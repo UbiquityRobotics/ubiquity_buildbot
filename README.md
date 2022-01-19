@@ -8,7 +8,7 @@ The raspberry pi image build can only be triggered on an ARM machine. You can ei
 
 Here is how you configure an AWS instance for building a new image:
 
-https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Ubiquity (TODO link?) -> `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
+https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Admin -> `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
 
 Now open a terminal on your workstation and ssh onto the instance using the `.pem` security file
 
