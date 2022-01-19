@@ -532,8 +532,5 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
 
     print("Image build successfully")
 
-    print("Sleeping a bit")
-    time.sleep(1)
-
 if __name__ == "__main__":
     main()
