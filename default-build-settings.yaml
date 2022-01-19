@@ -14,7 +14,3 @@ imagedir: /image-builds/final-images
 rootfs: /image-builds/PiFlavourMaker/focal-build
 
 rootfs_extra_space_mb: 500
-
-image_hostname: ubiquityrobot
-
-username: ubuntu
