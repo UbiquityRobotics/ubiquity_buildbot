@@ -196,7 +196,8 @@ def is_conf_valid(conf):
                 "release", 
                 "imagedir", 
                 "rootfs_extra_space_mb", 
-                "rootfs"}
+                "rootfs",
+                "hostname"}
     for key in valid_keys:
         if key not in conf.keys():
             print("Imported conf is missing key: " + key)
@@ -397,7 +398,7 @@ def main():
             check=True,
         )
 
-        setup_networking("ubuntu")
+        setup_networking(conf["hostname"])
 
         # Set up fstab
         with open("/etc/fstab", "w+") as f:

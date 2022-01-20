@@ -1,4 +1,4 @@
-flavour: "ubiquity"
+flavour: "ubiquity-test"
 
 release: "focal"
 
@@ -12,3 +12,5 @@ imagedir: /image-builds/final-images
 rootfs: /image-builds/PiFlavourMaker/focal-build
 
 rootfs_extra_space_mb: 500
+
+hostname: "pi-focal"
