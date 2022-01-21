@@ -56,6 +56,13 @@ def apt_install_packages(
     command.extend(package_list)
     subprocess.run(command, check=True)
 
+def install_python2():
+    msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
+    msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
+    msg, code = feedback_popen("curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py", os.environ["HOME"])
+    msg, code = feedback_popen("python2 get-pip.py", os.environ["HOME"])
+    msg, code = feedback_popen("pip2 install requests", os.environ["HOME"])
+    msg, code = feedback_popen("pip2 install pyserial", os.environ["HOME"])
 
 def debootstrap(use_local_mirror: bool = True):
     ubuntu_mirror = default_ubuntu_mirror
@@ -272,7 +279,6 @@ def main():
         ssl_update() #update ssl certificates if need be
         apt_update()
         apt_upgrade()
-
         
         # Do all of the apt installs upfront because it is slightly faster, and allows
         # us to potentially do something smarter in the future, like extract all the
@@ -338,6 +344,10 @@ def main():
                 "poppler-utils",  # Required but not properly installed by fiducals
             ]
         )
+
+        # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
+        # TODO: When firmware upgrading migrates to py3, this can be removed
+        install_python2()
 
         groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
         for group in groups:
