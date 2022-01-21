@@ -1,18 +1,43 @@
 # pi_image2
 
-## Install Dependencies
+## Building a new image manually
+The raspberry pi image build can only be triggered on an ARM machine. You can either configure a local ARM machine (eg. raspberry-pi), sync this repo onto it, install dependencies and trigger the build. Another way is to setup an instance on the AWS server and trigger the build on that. 
+
+### Setting up a build on AWS server
+**Setting up a build machine**
+
+Here is how you configure an AWS instance for building a new image:
+
+https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Admin -> `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
+
+Now open a terminal on your workstation and ssh onto the instance using the `.pem` security file
+
+    ssh -i ~/Downloads/John.pem ubuntu@3.129.90.191
+
+If you don't have a `.pem` security file for aws server, ask Admin to get you one.
+
+You are now able to ssh onto the aws build machine, next is to sync the code pi_image2 code onto it:
+
+**Syncing code onto the AWS machine**
+
+To sync the code, open a terminal on your workstation and enter:
+
+    rsync -avzhe "ssh -i Downloads/John.pem" /PATH_TO_CODE/pi_image2/ ubuntu@3.129.90.191:pi_image2/
+
+where `PATH_TO_CODE` is the path to your local code files which you want to test building.
+
+### Install Dependencies
+(This may be unnecessary on AWS template that has this already pre-installed)
 
 Python dependencies:
   
     sudo pip install pychroot
   
-and additionaly you need to install debootstrap tool: <br>
-
-- Download latest debian package from: 
+and additionally you need to install debootstrap tool:
   
-      sudo apt install debootstrap 
+    sudo apt install debootstrap 
   
-## How to run
+### Triggering a new build
 
 You need to run using root privileges:
 

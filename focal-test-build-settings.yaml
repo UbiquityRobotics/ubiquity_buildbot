@@ -1,4 +1,4 @@
-flavour: "ubiquity-lxde"
+flavour: "ubiquity-test"
 
 release: "focal"
 
@@ -13,6 +13,4 @@ rootfs: /image-builds/PiFlavourMaker/focal-build
 
 rootfs_extra_space_mb: 500
 
-image_hostname: ubiquityrobot
-
-username: ubuntu
+hostname: "pi-focal"

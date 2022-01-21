@@ -5,6 +5,7 @@ import subprocess
 import shutil
 import crypt
 from contextlib import contextmanager
+import time
 from pychroot import Chroot
 import typing
 from typing import Iterator
@@ -14,19 +15,15 @@ import argparse
 from datetime import datetime
 import yaml
 
-# default settings
-flavour = "ubiquity-lxde"
-hostname = "pi-focal"
-rootfs = "/focal-build"
-release = "focal"
-image = str(datetime.today().date())+"-"+flavour+"-"+release+"-raspberry-pi.img"
-imagedir = os.getcwd()
+# global conf file
+conf = dict()
+
+# mirror settings
 default_ubuntu_mirror = "http://ports.ubuntu.com/"
 local_ubuntu_mirror = "http://us-east-2.ec2.ports.ubuntu.com/ubuntu-ports/"
 # local_ubuntu_mirror = "http://mirrors.mit.edu/ubuntu-ports/"
 default_ros_mirror = "http://packages.ros.org/ros/ubuntu"
 local_ros_mirror = "http://packages.ros.org/ros/ubuntu"
-rootfs_extra_space_mb = 500
 
 """
 Execute popen with feedback
@@ -70,7 +67,7 @@ def debootstrap(use_local_mirror: bool = True):
             "--verbose",
             "--arch=armhf",
             "focal",
-            rootfs,
+            conf["rootfs"],
             ubuntu_mirror,
         ],
         check=True,
@@ -82,17 +79,17 @@ def ubuntu_apt_sources(use_local_mirror: bool = False):
     if use_local_mirror:
         ubuntu_mirror = local_ubuntu_mirror
 
-    sources = f"""deb {ubuntu_mirror} {release} main restricted universe multiverse
-#deb-src {ubuntu_mirror} {release} main restricted universe multiverse
+    sources = f"""deb {ubuntu_mirror} {conf['release']} main restricted universe multiverse
+#deb-src {ubuntu_mirror} {conf['release']} main restricted universe multiverse
 
-deb {ubuntu_mirror} {release}-updates main restricted universe multiverse
-#deb-src {ubuntu_mirror} {release}-updates main restricted universe multiverse
+deb {ubuntu_mirror} {conf['release']}-updates main restricted universe multiverse
+#deb-src {ubuntu_mirror} {conf['release']}-updates main restricted universe multiverse
 
-deb {ubuntu_mirror} {release}-security main restricted universe multiverse
-#deb-src {ubuntu_mirror} {release}-security main restricted universe multiverse
+deb {ubuntu_mirror} {conf['release']}-security main restricted universe multiverse
+#deb-src {ubuntu_mirror} {conf['release']}-security main restricted universe multiverse
 
-deb {ubuntu_mirror} {release}-backports main restricted universe multiverse
-#deb-src {ubuntu_mirror} {release}-backports main restricted universe multiverse"""
+deb {ubuntu_mirror} {conf['release']}-backports main restricted universe multiverse
+#deb-src {ubuntu_mirror} {conf['release']}-backports main restricted universe multiverse"""
 
     with open("/etc/apt/sources.list", "w+") as f:
         f.write(sources)
@@ -108,10 +105,10 @@ def ros_apt_sources(use_local_mirror: bool = False):
     if use_local_mirror:
         ros_mirror = local_ros_mirror
 
-    sources = f"deb {ros_mirror} {release} main"
+    sources = f"deb {ros_mirror} {conf['release']} main"
     sources = f"""Types: deb
 URIs:  {ros_mirror} 
-Suites: {release}
+Suites: {conf['release']}
 Components: main 
 Signed-By: /usr/share/keyrings/ros-archive-keyring.gpg
     """
@@ -127,7 +124,7 @@ def ubiquity_apt_sources():
 
     sources = f"""Types: deb
 URIs:  https://packages.ubiquityrobotics.com/ubuntu/ubiquity-testing 
-Suites: {release}
+Suites: {conf['release']}
 Components: main pi
 Signed-By: /usr/share/keyrings/ubiquity-archive-keyring.gpg
     """
@@ -188,13 +185,28 @@ UseMTU=true
 """
         f.write(network_conf)
 
+def is_conf_valid(conf):
+    # first check if conf is dict
+    if type(conf) != dict:
+        print("Imported config file is not dictionary")
+        return False
+
+    # check if the valid keys are in conf
+    valid_keys={"flavour",
+                "release", 
+                "imagedir", 
+                "rootfs_extra_space_mb", 
+                "rootfs",
+                "hostname"}
+    for key in valid_keys:
+        if key not in conf.keys():
+            print("Imported conf is missing key: " + key)
+            return False
+    
+    return True
+
 def main():
-    global hostname
-    global rootfs
-    global release
-    global image
-    global imagedir
-    global rootfs_extra_space_mb
+    global conf
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -213,31 +225,32 @@ def main():
     try:
         with open(py_arguments.config_path) as yp:
             conf = yaml.safe_load(yp)
-            hostname = conf["image_hostname"]
-            rootfs = conf["rootfs"]
-            release = conf["release"]
-            image = str(datetime.today().date())+"-"+conf["flavour"]+"-"+conf["release"]+"-raspberry-pi.img"
-            imagedir = conf["imagedir"]
-            rootfs_extra_space_mb = conf["rootfs_extra_space_mb"]
+            # check if imported config is valid and exit if its not
+            if not is_conf_valid(conf):
+                return False
     except Exception as e:
         print("Error reading " + py_arguments.config_path)
         print(e)
 
+    # create image name from the parameters imported from config
+    image = str(datetime.today().date())+"-"+conf["flavour"]+"-"+conf["release"]+"-raspberry-pi.img"
+
     print("=========================================")
-    print("Settings:")
-    print("Hostname: " + hostname)
-    print("Rootfs: " + rootfs)
-    print("Release: " + release)
-    print("Image: " + image)
-    print("Imagedir: " + imagedir)
-    print("Local mirror: " + local_ubuntu_mirror)
-    print("Rootfs extra space (mb): " + str(rootfs_extra_space_mb))
-    print("---")
+    print("Settings from scripts arguments:")
     print("Skip compressing image: " + str(py_arguments.skip_compressing_image))
+    print("Config path: " + str(py_arguments.config_path))
+    print("---")
+    print("Settings from yaml:")
+    print("Rootfs: " + conf["rootfs"])
+    print("Release: " + conf["release"])
+    print("Imagedir: " + conf["imagedir"])
+    print("Rootfs extra space (mb): " + str(conf["rootfs_extra_space_mb"]))
+    print("---")
+    print("Generated image name: " + image)
     print("=========================================")
 
-    if os.path.isdir(rootfs):
-        shutil.rmtree(rootfs)
+    if os.path.isdir(conf["rootfs"]):
+        shutil.rmtree(conf["rootfs"])
     debootstrap()
 
     # define chroot mountpoints
@@ -251,7 +264,7 @@ def main():
         "./device-tree:/device-tree": {},
     }
 
-    with Chroot(rootfs, mountpoints=chroot_mountpoints):
+    with Chroot(conf["rootfs"], mountpoints=chroot_mountpoints):
         ubuntu_apt_sources(use_local_mirror=True) #add ubuntu apt sources
         apt_update() # update ubuntu apt sources first and sync time
         ros_apt_sources() #add ros apt sources
@@ -385,7 +398,7 @@ def main():
             check=True,
         )
 
-        setup_networking(hostname)
+        setup_networking(conf["hostname"])
 
         # Set up fstab
         with open("/etc/fstab", "w+") as f:
@@ -468,28 +481,28 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
     # shutil.rmtree("/focal-build/focal-build")
 
     # Calculate size of rootfs
-    rootfs_size = linux_util.du_mb(rootfs)
+    rootfs_size = linux_util.du_mb(conf["rootfs"])
     print(f"Root FS is {rootfs_size} MiB")
 
     # Leave 500 MiB free space in the root partition
-    root_part_size = rootfs_size + rootfs_extra_space_mb
+    root_part_size = rootfs_size + conf["rootfs_extra_space_mb"]
     print(f"Root Part will be {root_part_size} MiB")
 
     # Make image file
     # create imagedir if it does not already exist
-    if not os.path.isdir(imagedir):
-        subprocess.run(["mkdir", "-p", imagedir], check=True)
+    if not os.path.isdir(conf["imagedir"]):
+        subprocess.run(["mkdir", "-p", conf["imagedir"]], check=True)
 
     # remove image file if it already exsists
-    if os.path.exists(imagedir+"/"+image):
-        os.remove(imagedir+"/"+image)
+    if os.path.exists(conf["imagedir"]+"/"+image):
+        os.remove(conf["imagedir"]+"/"+image)
 
     # create image file
-    image_util.create_image_file(imagedir+"/"+image, 128, root_part_size)
+    image_util.create_image_file(conf["imagedir"]+"/"+image, 128, root_part_size)
 
-    print("Created image: "+imagedir+"/"+image)
+    print("Created image: "+conf["imagedir"]+"/"+image)
 
-    with image_util.loopdev_context_manager(imagedir+"/"+image) as loop:
+    with image_util.loopdev_context_manager(conf["imagedir"]+"/"+image) as loop:
         boot_loop = loop + "p1"
         root_loop = loop + "p2"
         subprocess.run(
@@ -508,24 +521,26 @@ echo "Wifi can be managed with pifi (pifi --help for more info)"
                 # rsync errors on copying some attrs to /boot because it is fat
                 # so we disable the check for the subprocess call. We should find
                 # a better solution, like figuring out how to ignore only the expected error.
-                subprocess.run(["rsync", "-aHAXx", rootfs + "/", "mount/"], check=False)
+                subprocess.run(["rsync", "-aHAXx", conf["rootfs"] + "/", "mount/"], check=False)
 
     if not py_arguments.skip_compressing_image:
-        print("Compressing image to "+imagedir+"/"+image+".xz")
+        print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
         # if file already exsists, delete it
-        if os.path.exists(imagedir+"/"+image+".xz"):
-            os.remove(imagedir+"/"+image+".xz")
+        if os.path.exists(conf["imagedir"]+"/"+image+".xz"):
+            os.remove(conf["imagedir"]+"/"+image+".xz")
         # execute compression
-        msg, code = feedback_popen("xz -4 "+imagedir+"/"+image, os.environ["HOME"])
+        msg, code = feedback_popen("xz -4 "+conf["imagedir"]+"/"+image, os.environ["HOME"])
         if code != 0:
             print(str(msg))
     else:
         print("Skipping compression of image")
 
-    print("Overwriting latest_image with: "+imagedir+"/"+image)
+    print("Overwriting latest_image with: "+conf["imagedir"]+"/"+image)
     # overwrite latest_image the name of the latest image for buildbot to be able to upload
     f = open("latest_image", "w")
-    f.write(imagedir+"/"+image)
+    f.write(conf["imagedir"]+"/"+image)
+    feedback_popen("chmod a+r latest_image", os.getcwd())
+    f.close()
 
     print("Image build successfully")
 
