@@ -489,7 +489,8 @@ echo "Learn more: https://learn.ubiquityrobotics.com"
 echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
 echo ""
 echo "Wifi can be managed with pifi (pifi --help for more info)"
-echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out line dtoverlay=i2c-rtc,mcp7940x in /boot/config.txt to shorthen boot times
+echo ""
+echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out line dtoverlay=i2c-rtc,mcp7940x in /boot/config.txt to shorthen boot times"
 """
             f.write(motd)
         subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
