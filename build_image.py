@@ -56,6 +56,24 @@ def apt_install_packages(
     command.extend(package_list)
     subprocess.run(command, check=True)
 
+def install_destop_environment():
+    # install the new desktop enviroment
+    msg, code = feedback_popen("apt-get install -y gdm3", os.environ["HOME"])
+
+    # Setup the desktop to not logout on idle
+    os.makedirs("/usr/share/glib-2.0/schemas/", exist_ok=True)
+    # In chroot "gsettings set" commands don't work, thats why we change default desktop settings
+    # https://answers.launchpad.net/cubic/+question/696919
+    shutil.copy("files/org.gnome.desktop.screensaver.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.screensaver.gschema.xml")
+    shutil.copy("files/org.gnome.settings-daemon.plugins.power.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.settings-daemon.plugins.power.gschema.xml")
+    # schemas must be recompiled after every change
+    msg, code = feedback_popen("glib-compile-schemas /usr/share/glib-2.0/schemas", os.environ["HOME"])
+    
+    # enable automatic login for user ubuntu by setting AutomaticLoginEnable and AutomaticLogin to true
+    msg, code = feedback_popen("sed -i '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true' /etc/gdm3/custom.conf", os.environ["HOME"])
+    msg, code = feedback_popen("sed -i '/AutomaticLogin .*/c\AutomaticLogin = ubuntu' /etc/gdm3/custom.conf", os.environ["HOME"])
+
+
 def install_python2():
     msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
     msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
@@ -349,6 +367,9 @@ def main():
         # TODO: When firmware upgrading migrates to py3, this can be removed
         install_python2()
 
+        # Installing and configuring desktop environment
+        install_destop_environment()
+
         groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
         for group in groups:
             subprocess.run(["groupadd", "-f", "--system", group], check=True)
@@ -469,6 +490,7 @@ echo "Learn more: https://learn.ubiquityrobotics.com"
 echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
 echo ""
 echo "Wifi can be managed with pifi (pifi --help for more info)"
+echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out line dtoverlay=i2c-rtc,mcp7940x in /boot/config.txt to shorthen boot times
 """
             f.write(motd)
         subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
