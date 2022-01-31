@@ -76,7 +76,6 @@ def install_destop_environment():
 
 def install_python2():
     msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
-    msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
     msg, code = feedback_popen("curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py", os.environ["HOME"])
     msg, code = feedback_popen("python2 get-pip.py", os.environ["HOME"])
     msg, code = feedback_popen("pip2 install requests", os.environ["HOME"])
