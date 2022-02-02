@@ -25,13 +25,6 @@ local_ubuntu_mirror = "http://us-east-2.ec2.ports.ubuntu.com/ubuntu-ports/"
 default_ros_mirror = "http://packages.ros.org/ros/ubuntu"
 local_ros_mirror = "http://packages.ros.org/ros/ubuntu"
 
-"""
-Execute popen with feedback
-"""
-def feedback_popen(command, cwd):
-    proc = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True, cwd=cwd)
-    return proc.communicate()[0], proc.returncode
-
 def apt_update():
     subprocess.run(["apt-get", "update"], check=True)
 
@@ -56,9 +49,9 @@ def apt_install_packages(
     command.extend(package_list)
     subprocess.run(command, check=True)
 
-def install_destop_environment():
+def install_desktop_environment():
     # install the new desktop enviroment
-    msg, code = feedback_popen("apt-get install -y gdm3", os.environ["HOME"])
+    subprocess.run(["apt-get", "install", "-y", "gdm3"], check=False)
 
     # Setup the desktop to not logout on idle
     os.makedirs("/usr/share/glib-2.0/schemas/", exist_ok=True)
@@ -67,19 +60,18 @@ def install_destop_environment():
     shutil.copy("files/org.gnome.desktop.screensaver.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.screensaver.gschema.xml")
     shutil.copy("files/org.gnome.settings-daemon.plugins.power.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.settings-daemon.plugins.power.gschema.xml")
     # schemas must be recompiled after every change
-    msg, code = feedback_popen("glib-compile-schemas /usr/share/glib-2.0/schemas", os.environ["HOME"])
-    
+    subprocess.run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"], check=False)
+        
     # enable automatic login for user ubuntu by setting AutomaticLoginEnable and AutomaticLogin to true
-    msg, code = feedback_popen("sed -i '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true' /etc/gdm3/custom.conf", os.environ["HOME"])
-    msg, code = feedback_popen("sed -i '/AutomaticLogin .*/c\AutomaticLogin = ubuntu' /etc/gdm3/custom.conf", os.environ["HOME"])
-
+    subprocess.run(["sed", "-i", '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true', "/etc/gdm3/custom.conf"], check=False)
+    subprocess.run(["sed", "-i", '/AutomaticLogin .*/c\AutomaticLogin = ubuntu', "/etc/gdm3/custom.conf"], check=False)
 
 def install_python2():
-    msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
-    msg, code = feedback_popen("curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py", os.environ["HOME"])
-    msg, code = feedback_popen("python2 get-pip.py", os.environ["HOME"])
-    msg, code = feedback_popen("pip2 install requests", os.environ["HOME"])
-    msg, code = feedback_popen("pip2 install pyserial", os.environ["HOME"])
+    subprocess.run(["apt-get", "install", "python2", "-y"], check=False)
+    subprocess.run(["curl", "https://bootstrap.pypa.io/pip/2.7/get-pip.py", "--output" , "get-pip.py"], check=False)
+    subprocess.run(["python2", "get-pip.py"], check=False)
+    subprocess.run(["pip2", "install", "requests"], check=False)
+    subprocess.run(["pip2", "install", "pyserial"], check=False)
 
 def debootstrap(use_local_mirror: bool = True):
     ubuntu_mirror = default_ubuntu_mirror
@@ -367,7 +359,7 @@ def main():
         install_python2()
 
         # Installing and configuring desktop environment
-        install_destop_environment()
+        install_desktop_environment()
 
         groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
         for group in groups:
@@ -561,9 +553,7 @@ echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out
         if os.path.exists(conf["imagedir"]+"/"+image+".xz"):
             os.remove(conf["imagedir"]+"/"+image+".xz")
         # execute compression
-        msg, code = feedback_popen("xz -4 "+conf["imagedir"]+"/"+image, os.environ["HOME"])
-        if code != 0:
-            print(str(msg))
+        subprocess.run(["xz", "-4", conf["imagedir"]+"/"+image], check=False)
     else:
         print("Skipping compression of image")
 
@@ -571,7 +561,7 @@ echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out
     # overwrite latest_image the name of the latest image for buildbot to be able to upload
     f = open("latest_image", "w")
     f.write(conf["imagedir"]+"/"+image)
-    feedback_popen("chmod a+r latest_image", os.getcwd())
+    subprocess.run(["chmod", "a+r", "latest_image"], check=False)
     f.close()
 
     print("Image build successfully")
