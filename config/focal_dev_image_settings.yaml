@@ -1,0 +1,34 @@
+# Do not remove this file as it is the default path to build_image.py
+
+flavour: "ubiquity-gdm3"
+
+release: "focal"
+
+version: "20.04.2"
+
+#image name will be constructed:
+# ${timestamp}-${flavour}-${release}-raspberry-pi.img
+
+imagedir: /image-builds/final-images
+
+rootfs: /image-builds/PiFlavourMaker/focal-build
+
+rootfs_extra_space_mb: 500
+
+hostname: "ubuntu"
+
+apt_get_packages: 
+  - python2
+  - gdm3
+  - ros-noetic-raspicam-node
+  - ros-noetic-pi-sonar
+  - ros-noetic-ubiquity-motor
+  - ros-noetic-oled-display-node
+  - ros-noetic-move-basic
+  - ros-noetic-fiducials
+  - ros-noetic-teleop-twist-keyboard
+  - ros-noetic-carrot-planner # Required but not properly installed by magni-robot
+  - cairosvg  # Required but not properly installed by fiducals
+  - poppler-utils  # Required but not properly installed by fiducals
+  - gnome-terminal # otherwise there is no terminal on desktop environment
+  - gedit

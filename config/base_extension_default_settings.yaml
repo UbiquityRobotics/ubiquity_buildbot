@@ -16,3 +16,7 @@ rootfs: /image-builds/PiFlavourMaker/focal-build
 rootfs_extra_space_mb: 500
 
 hostname: "ubuntu"
+
+apt_get_packages: 
+ - python2
+ - gdm3
