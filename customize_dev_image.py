@@ -13,9 +13,9 @@ class customizeImage:
 			f.write("usbhid.mousepoll=4 ")
 			f.close()
 
-		# Setup the desktop to not logout on idle
+		# setup the desktop to not logout on idle
 		os.makedirs("/usr/share/glib-2.0/schemas/", exist_ok=True)
-		# In chroot "gsettings set" commands don't work, thats why we change default desktop settings
+		# in chroot "gsettings set" commands don't work, thats why we change default desktop settings
 		# https://answers.launchpad.net/cubic/+question/696919
 		shutil.copy("files/org.gnome.desktop.screensaver.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.screensaver.gschema.xml")
 		shutil.copy("files/org.gnome.settings-daemon.plugins.power.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.settings-daemon.plugins.power.gschema.xml")

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os, sys
+from re import sub
 import subprocess
 import shutil
 import crypt
@@ -32,6 +33,10 @@ def apt_update():
 
 def apt_upgrade():
     subprocess.run(["apt-get", "-yy", "upgrade"], check=True)
+
+def ssl_update():
+    subprocess.run(["apt-get", "install", "ca-certificates", "-y"], check=True)
+    subprocess.run(["update-ca-certificates"], check=True)
 
 def apt_install_packages(
     package_list: typing.List[str],
@@ -181,6 +186,11 @@ def is_conf_valid(conf):
     
     return True
 
+def subprocess_run(command):
+    print("RUNNING COMMAND: " + command)
+    subprocess.run(command, shell= True, check=True)
+
+
 def main():
     global conf
 
@@ -191,6 +201,11 @@ def main():
         help="Weather to skip compressing final image. For debug purposes",
     )
     parser.add_argument(
+        "--skip_making_image",
+        action="store_true",
+        help="Weather to skip making final image (file that ends with .img). For debug purposes. If this is true, also image compression will be skipped",
+    )
+    parser.add_argument(
         "--config_path",
         default="config/focal_base_image_settings.yaml",
         help="Path to settings yaml",
@@ -199,6 +214,11 @@ def main():
         "--customization_script_path",
         default="customize_image.py",
         help="Customization script path",
+    )
+    parser.add_argument(
+        "--git_token",
+        default="",
+        help="git token that is going to be temporary set as GIT_TOKEN in chroot session. Users can invoke that to authenticate git actions",
     )
     py_arguments, unknown = parser.parse_known_args()
 
@@ -225,6 +245,7 @@ def main():
 
     print("=========================================")
     print("Settings from scripts arguments:")
+    print("Skip making image: " + str(py_arguments.skip_making_image))
     print("Skip compressing image: " + str(py_arguments.skip_compressing_image))
     print("Config path: " + str(py_arguments.config_path))
     print("---")
@@ -252,32 +273,51 @@ def main():
     }
 
     if not os.path.isdir(conf["rootfs"]):
-        print("ERROR: Could not find " + conf["rootfs"] + ". Base rootfs needs to be prebuilt to extend image on.")
-        return
+        print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
+        subprocess_run("sudo python3 build_rootfs.py --rootfs " + conf["rootfs"])
+
+    # if not os.path.isfile(conf["rootfs"])
+
+    try:
+        with open(conf["rootfs"]+"/home/ubuntu/build_info", "r") as f:
+            print(f.read())
+    except:
+        print("Could not read /home/ubuntu/build_info")
 
     rootfs_ext = conf["rootfs"] + "-extended"
 
     # if os.path.isdir(rootfs_ext):
     #     print("Removing old " + rootfs_ext)
     #     shutil.rmtree(rootfs_ext)
-    if not os.path.isdir(rootfs_ext):
-        print("Taking " + conf["rootfs"] + ", copying it into " + rootfs_ext)
-        subprocess.run(["cp", "-r", conf["rootfs"], rootfs_ext], check=True)
-    # subprocess.run(["rsync", "-avh", conf["rootfs"], rootfs_ext, "--delete"], check=True)
-    
+    # if not os.path.isdir(rootfs_ext):
+    #     print("Taking " + conf["rootfs"] + ", copying it into " + rootfs_ext)
+    #     subprocess_run("cp -r "+ conf["rootfs"] + " " + rootfs_ext)
+
+    # using rsync is faster then cp, since if doing it multiple times on same machine it takes less time
+    # options used with rsync
+    # -a  : all files, with permissions, etc..
+    # -x  : stay on one file system
+    # -H  : preserve hard links (not included with -a)
+    # -A  : preserve ACLs/permissions (not included with -a)
+    # -X  : preserve extended attributes (not included with -a)
+    # --delete: deletes files in the destination that are not present in the source.
+    subprocess_run("sudo rsync -axHAX --delete "+ conf["rootfs"]+"/" + " " + rootfs_ext+"/")
 
     with Chroot(rootfs_ext, mountpoints=chroot_mountpoints):
+        # since we are taking an already made rootfs, the rights to some folders need to be restored
+        subprocess_run("chmod 1777 /tmp")
+        subprocess_run("chmod -R 775 /var/cache/man/")
         
-        try:
-            with open("home/ubuntu/build_info", "w+") as f:
-                print(f.read()) 
-        except:
-            print("Could not read /home/ubuntu/build_info")
-
+        ssl_update()
         apt_update()
         apt_upgrade()
 
-        print("========== now installing external apt packages ===============")
+        # set git token as temporary global variable so external apt packages can easily authenticate 
+        # git actions using command "git clone https://$GIT_TOKEN@github.com/repolik.git"
+        if py_arguments.git_token != "":
+            os.environ["GIT_TOKEN"] = py_arguments.git_token
+
+        print("========== now installing external apt packages ==============")
 
         apt_install_packages(conf["apt_get_packages"])
 
@@ -285,9 +325,9 @@ def main():
 
         customize_image.execute_customizations()
 
-        chroot_cleanup()
+        print("========== end of external customizations ====================")
 
-    # exit()
+        chroot_cleanup()
     
     # Calculate size of rootfs
     rootfs_size = linux_util.du_mb(rootfs_ext)
@@ -302,61 +342,59 @@ def main():
     if not os.path.isdir(conf["imagedir"]):
         subprocess.run(["mkdir", "-p", conf["imagedir"]], check=True)
 
-    # remove image file if it already exsists
-    if os.path.exists(conf["imagedir"]+"/"+image):
-        os.remove(conf["imagedir"]+"/"+image)
+    # don't make image if the flag skip_making_image is true
+    if not py_arguments.skip_making_image:
+        # remove image file if it already exsists
+        if os.path.exists(conf["imagedir"]+"/"+image):
+            os.remove(conf["imagedir"]+"/"+image)
 
-    # create image file
-    image_util.create_image_file(conf["imagedir"]+"/"+image, 128, root_part_size)
+        # create image file
+        image_util.create_image_file(conf["imagedir"]+"/"+image, 128, root_part_size)
 
-    print("Created image: "+conf["imagedir"]+"/"+image)
+        print("Created image: "+conf["imagedir"]+"/"+image)
 
-    with image_util.loopdev_context_manager(conf["imagedir"]+"/"+image) as loop:
-        boot_loop = loop + "p1"
-        root_loop = loop + "p2"
-        subprocess.run(
-            ["mkfs.vfat", "-n", "BOOT", "-S", "512", "-s", "16", "-v", boot_loop],
-            check=True,
-        )
+        with image_util.loopdev_context_manager(conf["imagedir"]+"/"+image) as loop:
+            boot_loop = loop + "p1"
+            root_loop = loop + "p2"
+            subprocess.run(
+                ["mkfs.vfat", "-n", "BOOT", "-S", "512", "-s", "16", "-v", boot_loop],
+                check=True,
+            )
 
-        subprocess.run(
-            ["mkfs.ext4", "-L", "ROOT", "-m", "0", "-O", "^huge_file", root_loop],
-            check=True,
-        )
+            subprocess.run(
+                ["mkfs.ext4", "-L", "ROOT", "-m", "0", "-O", "^huge_file", root_loop],
+                check=True,
+            )
 
-        with image_util.mount_context_manager(root_loop, "mount", "ext4"):
-            os.makedirs("mount/boot", exist_ok=True)
-            with image_util.mount_context_manager(boot_loop, "mount/boot", "vfat"):
-                # rsync errors on copying some attrs to /boot because it is fat
-                # so we disable the check for the subprocess call. We should find
-                # a better solution, like figuring out how to ignore only the expected error.
-                subprocess.run(["rsync", "-aHAXx", rootfs_ext + "/", "mount/"], check=False)
+            with image_util.mount_context_manager(root_loop, "mount", "ext4"):
+                os.makedirs("mount/boot", exist_ok=True)
+                with image_util.mount_context_manager(boot_loop, "mount/boot", "vfat"):
+                    # rsync errors on copying some attrs to /boot because it is fat
+                    # so we disable the check for the subprocess call. We should find
+                    # a better solution, like figuring out how to ignore only the expected error.
+                    subprocess.run(["rsync", "-aHAXx", rootfs_ext + "/", "mount/"], check=False)
 
-    if not py_arguments.skip_compressing_image:
-        print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
-        # if file already exsists, delete it
-        if os.path.exists(conf["imagedir"]+"/"+image+".xz"):
-            os.remove(conf["imagedir"]+"/"+image+".xz")
-        # execute compression
-        subprocess.run(["xz", "-4", conf["imagedir"]+"/"+image], check=False)
+            # dont compress image if skip_compressing_image is true
+            if not py_arguments.skip_compressing_image:
+                print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
+                # if file already exsists, delete it
+                if os.path.exists(conf["imagedir"]+"/"+image+".xz"):
+                    os.remove(conf["imagedir"]+"/"+image+".xz")
+                # execute compression
+                subprocess.run(["xz", "-4", conf["imagedir"]+"/"+image], check=False)
+            else:
+                print("Skipping compression of image")
+
+            print("Overwriting latest_image with: "+conf["imagedir"]+"/"+image)
+            # overwrite latest_image the name of the latest image for buildbot to be able to upload
+            f = open("latest_image", "w")
+            f.write(conf["imagedir"]+"/"+image)
+            subprocess.run(["chmod", "a+r", "latest_image"], check=False)
+            f.close()
     else:
-        print("Skipping compression of image")
+        print("Skipping making of .img file")
 
-    print("Overwriting latest_image with: "+conf["imagedir"]+"/"+image)
-    # overwrite latest_image the name of the latest image for buildbot to be able to upload
-    f = open("latest_image", "w")
-    f.write(conf["imagedir"]+"/"+image)
-    subprocess.run(["chmod", "a+r", "latest_image"], check=False)
-    f.close()
-
-    print("Image build successfully")
-
-    # prepare for next build - for faster debugging
-    print("Removing "+rootfs_ext)
-    shutil.rmtree(rootfs_ext)
-    print("Taking " + conf["rootfs"] + ", copying it into " + rootfs_ext)
-    subprocess.run(["cp", "-r", conf["rootfs"], rootfs_ext], check=True)
-
+    print("Script ending successfully")
 
 if __name__ == "__main__":
     main()

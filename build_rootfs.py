@@ -14,8 +14,7 @@ import argparse
 import yaml
 from datetime import datetime
 
-# global conf file
-conf = dict()
+py_arguments = None
 
 # mirror settings
 default_ubuntu_mirror = "http://ports.ubuntu.com/"
@@ -34,6 +33,15 @@ def ssl_update():
     subprocess.run(["apt-get", "install", "ca-certificates", "-y"], check=True)
     subprocess.run(["update-ca-certificates"], check=True)
 
+# Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
+# TODO: When firmware upgrading migrates to py3, this can be removed
+def install_python2():
+    subprocess.run(["apt-get", "install", "python2", "-y"], check=True)
+    subprocess.run(["curl", "https://bootstrap.pypa.io/pip/2.7/get-pip.py", "--output" , "get-pip.py"], check=False)
+    subprocess.run(["python2", "get-pip.py"], check=True)
+    subprocess.run(["pip2", "install", "requests"], check=True)
+    subprocess.run(["pip2", "install", "pyserial"], check=True)
+
 def apt_install_packages(
     package_list: typing.List[str],
     install_suggests: bool = False,
@@ -48,31 +56,7 @@ def apt_install_packages(
     command.extend(package_list)
     subprocess.run(command, check=True)
 
-def install_desktop_environment():
-    # install the new desktop enviroment
-    subprocess.run(["apt-get", "install", "-y", "gdm3"], check=False)
-
-    # Setup the desktop to not logout on idle
-    os.makedirs("/usr/share/glib-2.0/schemas/", exist_ok=True)
-    # In chroot "gsettings set" commands don't work, thats why we change default desktop settings
-    # https://answers.launchpad.net/cubic/+question/696919
-    shutil.copy("files/org.gnome.desktop.screensaver.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.screensaver.gschema.xml")
-    shutil.copy("files/org.gnome.settings-daemon.plugins.power.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.settings-daemon.plugins.power.gschema.xml")
-    # schemas must be recompiled after every change
-    subprocess.run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"], check=False)
-        
-    # enable automatic login for user ubuntu by setting AutomaticLoginEnable and AutomaticLogin to true
-    subprocess.run(["sed", "-i", '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true', "/etc/gdm3/custom.conf"], check=False)
-    subprocess.run(["sed", "-i", '/AutomaticLogin .*/c\AutomaticLogin = ubuntu', "/etc/gdm3/custom.conf"], check=False)
-
-def install_python2():
-    subprocess.run(["apt-get", "install", "python2", "-y"], check=False)
-    subprocess.run(["curl", "https://bootstrap.pypa.io/pip/2.7/get-pip.py", "--output" , "get-pip.py"], check=False)
-    subprocess.run(["python2", "get-pip.py"], check=False)
-    subprocess.run(["pip2", "install", "requests"], check=False)
-    subprocess.run(["pip2", "install", "pyserial"], check=False)
-
-def debootstrap(use_local_mirror: bool = True):
+def debootstrap(rootfs, use_local_mirror: bool = True):
     ubuntu_mirror = default_ubuntu_mirror
     if use_local_mirror:
         ubuntu_mirror = local_ubuntu_mirror
@@ -82,7 +66,7 @@ def debootstrap(use_local_mirror: bool = True):
             "--verbose",
             "--arch=armhf",
             "focal",
-            conf["rootfs"],
+            rootfs,
             ubuntu_mirror,
         ],
         check=True,
@@ -94,17 +78,17 @@ def ubuntu_apt_sources(use_local_mirror: bool = False):
     if use_local_mirror:
         ubuntu_mirror = local_ubuntu_mirror
 
-    sources = f"""deb {ubuntu_mirror} {conf['release']} main restricted universe multiverse
-#deb-src {ubuntu_mirror} {conf['release']} main restricted universe multiverse
+    sources = f"""deb {ubuntu_mirror} {py_arguments.release} main restricted universe multiverse
+#deb-src {ubuntu_mirror} {py_arguments.release} main restricted universe multiverse
 
-deb {ubuntu_mirror} {conf['release']}-updates main restricted universe multiverse
-#deb-src {ubuntu_mirror} {conf['release']}-updates main restricted universe multiverse
+deb {ubuntu_mirror} {py_arguments.release}-updates main restricted universe multiverse
+#deb-src {ubuntu_mirror} {py_arguments.release}-updates main restricted universe multiverse
 
-deb {ubuntu_mirror} {conf['release']}-security main restricted universe multiverse
-#deb-src {ubuntu_mirror} {conf['release']}-security main restricted universe multiverse
+deb {ubuntu_mirror} {py_arguments.release}-security main restricted universe multiverse
+#deb-src {ubuntu_mirror} {py_arguments.release}-security main restricted universe multiverse
 
-deb {ubuntu_mirror} {conf['release']}-backports main restricted universe multiverse
-#deb-src {ubuntu_mirror} {conf['release']}-backports main restricted universe multiverse"""
+deb {ubuntu_mirror} {py_arguments.release}-backports main restricted universe multiverse
+#deb-src {ubuntu_mirror} {py_arguments.release}-backports main restricted universe multiverse"""
 
     with open("/etc/apt/sources.list", "w+") as f:
         f.write(sources)
@@ -120,10 +104,10 @@ def ros_apt_sources(use_local_mirror: bool = False):
     if use_local_mirror:
         ros_mirror = local_ros_mirror
 
-    sources = f"deb {ros_mirror} {conf['release']} main"
+    sources = f"deb {ros_mirror} {py_arguments.release} main"
     sources = f"""Types: deb
 URIs:  {ros_mirror} 
-Suites: {conf['release']}
+Suites: {py_arguments.release}
 Components: main 
 Signed-By: /usr/share/keyrings/ros-archive-keyring.gpg
     """
@@ -139,7 +123,7 @@ def ubiquity_apt_sources():
 
     sources = f"""Types: deb
 URIs:  https://packages.ubiquityrobotics.com/ubuntu/ubiquity-testing 
-Suites: {conf['release']}
+Suites: {py_arguments.release}
 Components: main pi
 Signed-By: /usr/share/keyrings/ubiquity-archive-keyring.gpg
     """
@@ -200,58 +184,37 @@ UseMTU=true
 """
         f.write(network_conf)
 
-def is_conf_valid(conf):
-    # first check if conf is dict
-    if type(conf) != dict:
-        print("Imported config file is not dictionary")
-        return False
-
-    # check if the valid keys are in conf
-    valid_keys={"release", 
-                "rootfs",
-                "hostname"}
-    for key in valid_keys:
-        if key not in conf.keys():
-            print("Imported conf is missing key: " + key)
-            return False
-    
-    return True
-
 def main():
-    global conf
+    global py_arguments
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config_path",
-        default="config/build_root_settings.yaml",
-        help="Path to settings yaml",
+        "--release",
+        default="focal",
+        help="Release",
     )
+    parser.add_argument(
+        "--rootfs",
+        default="/image-builds/PiFlavourMaker/focal-build",
+        help="The path of generated rootfs",
+    )
+    parser.add_argument(
+        "--hostname",
+        default="pi-focal",
+        help="Network hostname of the generated rootfs",
+    )
+
     py_arguments, unknown = parser.parse_known_args()
 
-    # try importing settings from the config yaml file
-    try:
-        with open(py_arguments.config_path) as yp:
-            conf = yaml.safe_load(yp)
-            # check if imported config is valid and exit if its not
-            if not is_conf_valid(conf):
-                return False
-    except Exception as e:
-        print("Error reading " + py_arguments.config_path)
-        print(e)
-
     print("=========================================")
-    print("Settings from scripts arguments:")
-    print("Config path: " + str(py_arguments.config_path))
-    print("---")
-    print("Settings from yaml:")
-    print("Rootfs: " + conf["rootfs"])
-    print("Release: " + conf["release"])
-    print("---")
+    print("Output rootfs: " + str(py_arguments.rootfs))
+    print("Release: " + str(py_arguments.release))
+    print("Hostname: " + str(py_arguments.hostname))
     print("=========================================")
 
-    if os.path.isdir(conf["rootfs"]):
-        shutil.rmtree(conf["rootfs"])
-    debootstrap()
+    if os.path.isdir(py_arguments.rootfs):
+        shutil.rmtree(py_arguments.rootfs)
+    debootstrap(py_arguments.rootfs)
 
     # define chroot mountpoints
     chroot_mountpoints = {
@@ -264,7 +227,7 @@ def main():
         "./device-tree:/device-tree": {},
     }
 
-    with Chroot(conf["rootfs"], mountpoints=chroot_mountpoints):
+    with Chroot(py_arguments.rootfs, mountpoints=chroot_mountpoints):
         ubuntu_apt_sources(use_local_mirror=True) #add ubuntu apt sources
         apt_update() # update ubuntu apt sources first and sync time
         ros_apt_sources() #add ros apt sources
@@ -325,9 +288,13 @@ def main():
                 "ros-noetic-ros-base",
                 "python3-rosdep",
                 # magni common,
-                "ros-noetic-magni-robot"
+                "ros-noetic-magni-robot" #needed to enable magni-base.service
             ]
         )
+
+        # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
+        # TODO: When firmware upgrading migrates to py3, this can be removed
+        install_python2()
 
         groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
         for group in groups:
@@ -388,7 +355,7 @@ def main():
             check=True,
         )
 
-        setup_networking(conf["hostname"])
+        setup_networking(py_arguments.hostname)
 
         # Set up fstab
         with open("/etc/fstab", "w+") as f:
@@ -466,13 +433,14 @@ echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out
         # It's unclear what it does, if it should be added here as well or not, but leaving the file empty seems to be enough to clear up chroot errors
         subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
 
-        with open("home/ubuntu/build_info", "w+") as f:
-            motd = "ROOTFS_BUILT:"+str(datetime.today().date())
-            f.write(motd)
-
         # chroot_cleanup()
 
-    print("Built rootfs at: " + conf["rootfs"])
+    print("Built rootfs at: " + py_arguments.rootfs)
+
+    # writing into rootfs the date of its gerenation
+    with open(py_arguments.rootfs+"/home/ubuntu/build_info", "w+") as f:
+        f.write("ROOTFS_BUILT:"+str(datetime.today().date()))
+        f.close()
 
 if __name__ == "__main__":
     main()
