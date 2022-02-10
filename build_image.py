@@ -212,7 +212,7 @@ def main():
     )
     parser.add_argument(
         "--customization_script_path",
-        default="customize_image.py",
+        default="",
         help="Customization script path",
     )
     parser.add_argument(
@@ -236,12 +236,13 @@ def main():
     # create image name from the parameters imported from config
     image = str(datetime.today().date())+"-"+conf["flavour"]+"-"+conf["release"]+"-raspberry-pi.img"
 
-    try:
-        ci = SourceFileLoader("customize_image", py_arguments.customization_script_path).load_module()
-        customize_image = ci.customizeImage()
-    except:
-        print("Importing of customization script failed.")
-        return
+    if py_arguments.customization_script_path != "":
+        try:
+            ci = SourceFileLoader("customize_image", py_arguments.customization_script_path).load_module()
+            customize_image = ci.customizeImage()
+        except:
+            print("Importing of customization script failed.")
+            return
 
     print("=========================================")
     print("Settings from scripts arguments:")
@@ -286,13 +287,6 @@ def main():
 
     rootfs_ext = conf["rootfs"] + "-extended"
 
-    # if os.path.isdir(rootfs_ext):
-    #     print("Removing old " + rootfs_ext)
-    #     shutil.rmtree(rootfs_ext)
-    # if not os.path.isdir(rootfs_ext):
-    #     print("Taking " + conf["rootfs"] + ", copying it into " + rootfs_ext)
-    #     subprocess_run("cp -r "+ conf["rootfs"] + " " + rootfs_ext)
-
     # using rsync is faster then cp, since if doing it multiple times on same machine it takes less time
     # options used with rsync
     # -a  : all files, with permissions, etc..
@@ -321,11 +315,10 @@ def main():
 
         apt_install_packages(conf["apt_get_packages"])
 
-        print("========== now running external customizations ===============")
-
-        customize_image.execute_customizations()
-
-        print("========== end of external customizations ====================")
+        if py_arguments.customization_script_path != "":
+            print("========== now running external customizations ===============")
+            customize_image.execute_customizations()
+            print("========== end of external customizations ====================")
 
         chroot_cleanup()
     
@@ -372,9 +365,10 @@ def main():
                     # rsync errors on copying some attrs to /boot because it is fat
                     # so we disable the check for the subprocess call. We should find
                     # a better solution, like figuring out how to ignore only the expected error.
+                    print("It is expected that the next couple of rsync executions will fail with Operation not permitted. Thats OK.")
                     subprocess.run(["rsync", "-aHAXx", rootfs_ext + "/", "mount/"], check=False)
 
-            # dont compress image if skip_compressing_image is true
+            # don't compress image if skip_compressing_image is true
             if not py_arguments.skip_compressing_image:
                 print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
                 # if file already exsists, delete it
