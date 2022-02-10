@@ -365,7 +365,7 @@ def main():
                     # rsync errors on copying some attrs to /boot because it is fat
                     # so we disable the check for the subprocess call. We should find
                     # a better solution, like figuring out how to ignore only the expected error.
-                    print("It is expected that the next couple of rsync executions will fail with Operation not permitted. Thats OK.")
+                    print("The next couple of rsync executions will fail with 'Operation not permitted'. This can be ignored.")
                     subprocess.run(["rsync", "-aHAXx", rootfs_ext + "/", "mount/"], check=False)
 
             # don't compress image if skip_compressing_image is true
