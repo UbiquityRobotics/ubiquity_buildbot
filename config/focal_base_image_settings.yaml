@@ -1,6 +1,6 @@
 # Do not remove this file as it is the default path to build_image.py
 
-flavour: "ubiquity-base"
+flavour: "ubiquity-base-testing"
 
 release: "focal"
 

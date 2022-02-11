@@ -20,10 +20,10 @@ class customizeImage:
 		shutil.copy("files/org.gnome.desktop.screensaver.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.screensaver.gschema.xml")
 		shutil.copy("files/org.gnome.settings-daemon.plugins.power.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.settings-daemon.plugins.power.gschema.xml")
 		# schemas must be recompiled after every change
-		subprocess.run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"], check=False)
+		subprocess.run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"], check=True)
 			
 		# enable automatic login for user ubuntu by setting AutomaticLoginEnable and AutomaticLogin to true
-		subprocess.run(["sed", "-i", '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true', "/etc/gdm3/custom.conf"], check=False)
-		subprocess.run(["sed", "-i", '/AutomaticLogin .*/c\AutomaticLogin = ubuntu', "/etc/gdm3/custom.conf"], check=False)
+		subprocess.run(["sed", "-i", '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true', "/etc/gdm3/custom.conf"], check=True)
+		subprocess.run(["sed", "-i", '/AutomaticLogin .*/c\AutomaticLogin = ubuntu', "/etc/gdm3/custom.conf"], check=True)
 
 		return
