@@ -274,6 +274,8 @@ def main():
         "./device-tree:/device-tree": {},
     }
 
+    subprocess_run("ls "+os.getcwd())
+
     if not os.path.isdir(conf["rootfs"]):
         print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
         # we run the rootfs build script with absolute path so it works both on test machines and buildbot.
