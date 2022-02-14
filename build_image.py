@@ -240,8 +240,9 @@ def main():
         try:
             ci = SourceFileLoader("customize_image", py_arguments.customization_script_path).load_module()
             customize_image = ci.customizeImage()
-        except:
+        except Exception as e:
             print("Importing of customization script failed.")
+            print(e)
             return
 
     print("=========================================")
@@ -275,7 +276,8 @@ def main():
 
     if not os.path.isdir(conf["rootfs"]):
         print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
-        subprocess_run("sudo python3 build_rootfs.py --rootfs " + conf["rootfs"])
+        # we run the rootfs build script with absolute path so it works both on test machines and buildbot.
+        subprocess_run("sudo python3 "+os.getcwd()+"/build_rootfs.py --rootfs " + conf["rootfs"])
 
     # if not os.path.isfile(conf["rootfs"])
 
