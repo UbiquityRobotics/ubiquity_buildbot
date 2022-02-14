@@ -274,7 +274,7 @@ def main():
         "./device-tree:/device-tree": {},
     }
 
-    subprocess_run("ls "+os.getcwd())
+    subprocess_run("ls "+os.getcwd()+"/")
 
     if not os.path.isdir(conf["rootfs"]):
         print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
