@@ -9,8 +9,9 @@ class customizeImage:
 		
 	def execute_customizations(self):
 		# to get rid of mouse lag
-		with open("/boot/cmdline.txt", "w+") as f:
-			f.write("usbhid.mousepoll=4 ")
+		with open("/boot/cmdline.txt", "a") as f:
+			# the following is appended, an initial space is necessary to fit the file format
+			f.write(" usbhid.mousepoll=4")
 			f.close()
 
 		# setup the desktop to not logout on idle

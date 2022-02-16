@@ -1207,3 +1207,6 @@ core_freq=250
 dtoverlay=i2c-rtc,mcp7940x
 
 dtoverlay=ubiquity-led-buttons
+
+# disable rainbow splash screen for faster booting
+disable_splash=1
