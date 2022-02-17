@@ -303,6 +303,9 @@ def main():
         shutil.copy("/files/adduser.local", "/usr/local/sbin/adduser.local")
         linux_util.make_executable("/usr/local/sbin/adduser.local")
 
+        # set apt-daily.service to run after boot, not during it. This saves 30s of boot time
+        shutil.copy("/files/override.conf", "/etc/systemd/system/apt-daily.timer.d/override.conf")
+
         # Setup the robot config
         os.makedirs("/etc/ubiquity", exist_ok=True)
         shutil.copy("/files/robot.yaml", "/etc/ubiquity/robot.yaml")
