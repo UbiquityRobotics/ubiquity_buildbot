@@ -14,12 +14,16 @@ class customizeImage:
 			f.write(" usbhid.mousepoll=4")
 			f.close()
 
-		# setup the desktop to not logout on idle
 		os.makedirs("/usr/share/glib-2.0/schemas/", exist_ok=True)
 		# in chroot "gsettings set" commands don't work, thats why we change default desktop settings
 		# https://answers.launchpad.net/cubic/+question/696919
+		# setup the desktop to not logout on idle
 		shutil.copy("files/org.gnome.desktop.screensaver.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.screensaver.gschema.xml")
 		shutil.copy("files/org.gnome.settings-daemon.plugins.power.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.settings-daemon.plugins.power.gschema.xml")
+		# set the default desktop background
+		shutil.copy("files/branding/magni_wallpaper.png", "/usr/share/magni_wallpaper.png")
+		shutil.copy("files/org.gnome.desktop.background.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.background.gschema.xml")
+		# TODO in the future here also plymouth logo can be added
 		# schemas must be recompiled after every change
 		subprocess.run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"], check=True)
 			

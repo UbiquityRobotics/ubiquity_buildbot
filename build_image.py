@@ -236,6 +236,7 @@ def main():
     # create image name from the parameters imported from config
     image = str(datetime.today().date())+"-"+conf["flavour"]+"-"+conf["release"]+"-raspberry-pi.img"
 
+    # import of customize image script from specified path
     if py_arguments.customization_script_path != "":
         try:
             ci = SourceFileLoader("customize_image", py_arguments.customization_script_path).load_module()
@@ -281,13 +282,16 @@ def main():
         # we run the rootfs build script with absolute path so it works both on test machines and buildbot.
         subprocess_run("sudo python3 "+os.getcwd()+"/build_rootfs.py --rootfs " + conf["rootfs"])
 
-    # if not os.path.isfile(conf["rootfs"])
-
+    # warning of the build rootfs date if that is too large
     try:
-        with open(conf["rootfs"]+"/home/ubuntu/build_info", "r") as f:
-            print(f.read())
+        with open(conf["rootfs"]+"/home/ubuntu/build_info.yaml", "r") as f:
+            build_info = yaml.safe_load(f)
+            print("root fs build date: "+str(build_info["rootfs_build_date"]))
+            d_days = datetime.today().date()-build_info["rootfs_build_date"]
+            if d_days.days > 7:
+                print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
     except:
-        print("Could not read /home/ubuntu/build_info")
+        print("Could not read "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
 
     rootfs_ext = conf["rootfs"] + "-extended"
 
