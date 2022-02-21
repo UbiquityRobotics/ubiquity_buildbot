@@ -419,7 +419,28 @@ echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
 echo ""
 echo "Wifi can be managed with pifi (pifi --help for more info)"
 echo ""
-echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out line dtoverlay=i2c-rtc,mcp7940x in /boot/config.txt to shorthen boot times"
+
+# it is known that timeout for rtc causes large boot delays. This usually happens if MCB is not connected
+# if the error message is detected prompt the user to disable the hwclock-sync.service
+# see bigger discussion about this in https://github.com/UbiquityRobotics/pi_image2/issues/33
+if dmesg | grep -q "Timed out waiting for device /dev/rtc" >> /dev/null; then
+    echo "WARNING:"
+    echo "Detected message:"
+    dmesg | grep "Timed out waiting for device /dev/rtc"
+    echo "Waiting for non-existent /dev/rtc can cause large boot delays."
+    echo "Disable waiting for rtc with sudo systemctl disable hwclock-sync.service"
+    echo ""
+fi
+
+# if rtc device is found but rtc sync is not enabled, prompt the user to enable it.
+if hwclock --show > /dev/null 2>&1; then
+    if systemctl is-active hwclock-sync.service |  grep -q "inactive"; then
+        echo "WARNING:"
+        echo "Hardware RTC detected but hwclock-sync.service is not enabled."
+        echo "Enable it with sudo systemctl enable hwclock-sync.service"
+        echo ""
+    fi
+fi
 """
             f.write(motd)
         subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
@@ -435,8 +456,6 @@ echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out
         # On the Xenial image the file's content is one entry: /usr/lib/arm-linux-gnueabihf/libarmmem.so
         # It's unclear what it does, if it should be added here as well or not, but leaving the file empty seems to be enough to clear up chroot errors
         subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
-
-        # chroot_cleanup()
 
     print("Built rootfs at: " + py_arguments.rootfs)
 
