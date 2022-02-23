@@ -352,6 +352,21 @@ def main():
             cwd="/home/ubuntu/catkin_ws/src",
             check=True,
         )
+        # clone the noetic branch of magni robot TODO - when apt update of this is figured out, cloning this can be removed
+        linux_util.run_as_user(
+            "ubuntu",
+            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/magni_robot.git --branch noetic-devel"],
+            cwd="/home/ubuntu/catkin_ws/src",
+            check=True,
+        )
+        # clone the oled display node TODO - when apt update of this is figured out, cloning this can be removed
+        linux_util.run_as_user(
+            "ubuntu",
+            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/oled_display_node.git"],
+            cwd="/home/ubuntu/catkin_ws/src",
+            check=True,
+        )
+        # compile and source
         linux_util.run_as_user(
             "ubuntu",
             ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make"],
