@@ -233,6 +233,9 @@ def main():
             print("Importing of customization script failed.")
             print(e)
             return
+    else:
+        print("Customization script path was not defined. This can be done with --customization_script_path argument. Exiting")
+        return
 
     # try importing settings from the config yaml file
     try:

@@ -1,6 +1,0 @@
-# Do not remove this file as it is the default path to build_image.py
-release: "focal"
-
-rootfs: /image-builds/PiFlavourMaker/focal-build
-
-hostname: "ubuntu"
