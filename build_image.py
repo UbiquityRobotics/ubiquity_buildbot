@@ -10,6 +10,7 @@ import time
 from pychroot import Chroot
 import typing
 from typing import Iterator
+from customize_dev_image import customizeImage
 import linux_util
 import image_util
 import argparse
@@ -183,6 +184,11 @@ def is_conf_valid(conf):
         if key not in conf.keys():
             print("Imported conf is missing key: " + key)
             return False
+
+    # currently only possible value for release is "focal"
+    if conf["release"] != "focal":
+        print("'release' is set to "+conf["release"]+". Currently only possible value for release is 'focal'. Please correct this")
+        return False
     
     return True
 
@@ -206,11 +212,6 @@ def main():
         help="Weather to skip making final image (file that ends with .img). For debug purposes. If this is true, also image compression will be skipped",
     )
     parser.add_argument(
-        "--config_path",
-        default="config/focal_base_image_settings.yaml",
-        help="Path to settings yaml",
-    )
-    parser.add_argument(
         "--customization_script_path",
         default="",
         help="Customization script path",
@@ -222,19 +223,6 @@ def main():
     )
     py_arguments, unknown = parser.parse_known_args()
 
-    # try importing settings from the config yaml file
-    try:
-        with open(py_arguments.config_path) as yp:
-            conf = yaml.safe_load(yp)
-            # check if imported config is valid and exit if its not
-            if not is_conf_valid(conf):
-                return False
-    except Exception as e:
-        print("Error reading " + py_arguments.config_path)
-        print(e)
-
-    # create image name from the parameters imported from config
-    image = str(datetime.today().date())+"-"+conf["flavour"]+"-"+conf["release"]+"-raspberry-pi.img"
 
     # import of customize image script from specified path
     if py_arguments.customization_script_path != "":
@@ -246,13 +234,26 @@ def main():
             print(e)
             return
 
+    # try importing settings from the config yaml file
+    try:
+        conf = customize_image.conf
+        # check if imported config is valid and exit if its not
+        if not is_conf_valid(conf):
+            return False
+    except Exception as e:
+        print("Error reading imported config from customization script")
+        print(e)
+
+    # create image name from the parameters imported from config
+    image = str(datetime.today().date())+"-"+conf["flavour"]+"-"+conf["release"]+"-raspberry-pi.img"
+
+
     print("=========================================")
     print("Settings from scripts arguments:")
     print("Skip making image: " + str(py_arguments.skip_making_image))
     print("Skip compressing image: " + str(py_arguments.skip_compressing_image))
-    print("Config path: " + str(py_arguments.config_path))
     print("---")
-    print("Settings from yaml:")
+    print("Settings from customization script:")
     print("Rootfs: " + conf["rootfs"])
     print("Release: " + conf["release"])
     print("Imagedir: " + conf["imagedir"])
