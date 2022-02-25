@@ -10,7 +10,6 @@ import time
 from pychroot import Chroot
 import typing
 from typing import Iterator
-from customize_dev_image import customizeImage
 import linux_util
 import image_util
 import argparse
