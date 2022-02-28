@@ -201,6 +201,11 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--customization_script_path",
+        default="",
+        help="Customization script path",
+    )
+    parser.add_argument(
         "--skip_compressing_image",
         action="store_true",
         help="Weather to skip compressing final image. For debug purposes",
@@ -209,11 +214,6 @@ def main():
         "--skip_making_image",
         action="store_true",
         help="Weather to skip making final image (file that ends with .img). For debug purposes. If this is true, also image compression will be skipped",
-    )
-    parser.add_argument(
-        "--customization_script_path",
-        default="",
-        help="Customization script path",
     )
     parser.add_argument(
         "--git_token",
