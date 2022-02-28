@@ -28,11 +28,5 @@ After that syncs the buildbot code on your local machine has been synced to ubiq
 
 https://build.ubiquityrobotics.com/ -> `Builds` -> `Builders` -> Find your builder on the list and click on its name (eg. `pi-lxde-focal-testing-image`) -> `force`
 
-Then the builder should start building this specific builder, you can check its progress right there in the buldbot browser UI, OR by ssh-ing onto the machine that the builder is deployed on and printing its docker logs:
-
-```
-ssh root@sfo2.ubiquityrobotics.com #your ssh pub key needs to be added to sfo2.ubiquityrobotics.com to be able to login
-docker logs -f buildbot
-```
-
-`docker logs -f buildbot` command should also be used to debug the `502 Bad Gateway` on `https://build.ubiquityrobotics.com/` after deploying the code -> this most likely means there is an error in the deployed code.
+### Debugging Buildbot
+If there are any troubles deploying buildbot there are a couple of ways of debugging. They are listed in our internal documentation https://wiki.ubiquityrobotics.com/e/en/internal/buildbot
