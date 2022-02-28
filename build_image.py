@@ -233,8 +233,7 @@ def main():
             print(e)
             return
     else:
-        print("Customization script path was not defined. This can be done with --customization_script_path argument. Exiting")
-        return
+        sys.exit("Customization script path was not defined. This can be done with --customization_script_path argument. Exiting")
 
     # try importing settings from the config yaml file
     try:
