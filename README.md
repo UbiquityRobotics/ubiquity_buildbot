@@ -43,7 +43,7 @@ You need to run using root privileges:
 
     sudo python3 build_image.py ----customization_script_path <PATH TO CUSTOMIZATION SCRIPT>
   
-This will run `build_image.py` with default settings taken from given customisation script. To run script with base image customizations you can run
+This will run `build_image.py` with default settings taken from given customization script. To run script with base image customizations you can run
 
     sudo python3 build_image.py --customization_script_path customizations/customize_base_image.py
 
@@ -58,6 +58,6 @@ In any case, the build will take a while, so you might as well grab a coffee :)
 
  - For desktop environment we chose gdm3 because at the time of writing other lighter weight DMs like xubuntu and lubuntu had lots of troubles with Focal: https://github.com/UbiquityRobotics/pi_image2/issues/24#issuecomment-1023287561
 
- - Why does the image have only a startup message how to lower boot time and not some other slicker solutions: RPI does not have internal hardware RTC so we are getting then from MCB. If MCB is not connected, there are long boot times because RPI waits for harware RTC to be connected and we could not find how to lower that timeout through either `hwrtc-sync` or with `systemctl`. https://github.com/UbiquityRobotics/pi_image2/issues/33
+ - Why does the image have only a startup message how to lower boot time and not some other slicker solutions: RPI does not have internal hardware RTC so we are getting then from MCB. If MCB is not connected, there are long boot times because RPI waits for hardware RTC to be connected and we could not find how to lower that timeout through either `hwrtc-sync` or with `systemctl`. https://github.com/UbiquityRobotics/pi_image2/issues/33
 
  - why have we moved form yaml configuration folder to python customization scripts: We enabled users to do project-specific customizations to base image filesystem from project repos. It then made no sense to have a separate yaml file besides that script to as a configuration folder. The configurations were implemented as part of the script in the https://github.com/UbiquityRobotics/pi_image2/commit/671d99201d6be16e9ba63a37f31ec4fc3110ffde. The decision for this was discussed in https://github.com/UbiquityRobotics/pi_image2/pull/28#issuecomment-1047214238

@@ -286,14 +286,21 @@ def main():
 
     # warning of the build rootfs date if that is too large
     try:
-        with open(conf["rootfs"]+"/home/ubuntu/build_info.yaml", "r") as f:
+        # opening the build_info.yaml with r+ so we read, write and prepend new stuff 
+        with open(conf["rootfs"]+"/home/ubuntu/build_info.yaml", "r+") as f:
             build_info = yaml.safe_load(f)
             print("root fs build date: "+str(build_info["rootfs_build_date"]))
             d_days = datetime.today().date()-build_info["rootfs_build_date"]
             if d_days.days > 7:
                 print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
-    except:
-        print("Could not read "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
+
+            # add the image build date
+            d = {"image_build_date": datetime.today().date()}
+            d = yaml.dump(d, f)
+    except Exception as e:
+        print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
+        print(e)
+        exit(0)
 
     rootfs_ext = conf["rootfs"] + "-extended"
 
@@ -381,7 +388,7 @@ def main():
             # don't compress image if skip_compressing_image is true
             if not py_arguments.skip_compressing_image:
                 print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
-                # if file already exsists, delete it
+                # if file already exists, delete it
                 if os.path.exists(conf["imagedir"]+"/"+image+".xz"):
                     os.remove(conf["imagedir"]+"/"+image+".xz")
                 # execute compression
