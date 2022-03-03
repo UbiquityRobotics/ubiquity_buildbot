@@ -41,7 +41,7 @@ and additionally you need to install debootstrap tool:
 
 You need to run using root privileges:
 
-    sudo python3 build_image.py ----customization_script_path <PATH TO CUSTOMIZATION SCRIPT>
+    sudo python3 build_image.py --customization_script_path <PATH TO CUSTOMIZATION SCRIPT>
   
 This will run `build_image.py` with default settings taken from given customization script. To run script with base image customizations you can run
 

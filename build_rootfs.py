@@ -419,6 +419,9 @@ def main():
         # Enable auto-starting magni-base
         shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service")
         subprocess.run(["systemctl", "enable", "roscore.service"], check=True)
+        shutil.copy("/files/magni-base.sh", "/usr/sbin/magni-base")
+        linux_util.make_executable("/usr/sbin/magni-base")
+        shutil.copy("/files/magni-base.service", "/lib/systemd/system/magni-base.service")
         subprocess.run(["systemctl", "enable", "magni-base.service"], check=True)
 
         # Customize Message of The Day that shows up at login
