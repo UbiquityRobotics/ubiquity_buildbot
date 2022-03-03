@@ -1,0 +1,13 @@
+[Unit]
+Requires=roscore.service
+PartOf=roscore.service
+After=NetworkManager.service time-sync.target roscore.service
+
+[Service]
+Type=simple
+User=ubuntu
+Environment=ROS_HOME=/home/ubuntu/.ros
+ExecStart=/usr/sbin/magni-base
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os, sys
+from re import sub
 import subprocess
 import shutil
 import crypt
@@ -14,6 +15,8 @@ import image_util
 import argparse
 from datetime import datetime
 import yaml
+from importlib.machinery import SourceFileLoader
+
 
 # global conf file
 conf = dict()
@@ -24,13 +27,6 @@ local_ubuntu_mirror = "http://us-east-2.ec2.ports.ubuntu.com/ubuntu-ports/"
 # local_ubuntu_mirror = "http://mirrors.mit.edu/ubuntu-ports/"
 default_ros_mirror = "http://packages.ros.org/ros/ubuntu"
 local_ros_mirror = "http://packages.ros.org/ros/ubuntu"
-
-"""
-Execute popen with feedback
-"""
-def feedback_popen(command, cwd):
-    proc = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True, cwd=cwd)
-    return proc.communicate()[0], proc.returncode
 
 def apt_update():
     subprocess.run(["apt-get", "update"], check=True)
@@ -54,48 +50,8 @@ def apt_install_packages(
         command.append("--no-install-recommends")
     command.append("install")
     command.extend(package_list)
+    print(command)
     subprocess.run(command, check=True)
-
-def install_destop_environment():
-    # install the new desktop enviroment
-    msg, code = feedback_popen("apt-get install -y gdm3", os.environ["HOME"])
-
-    # Setup the desktop to not logout on idle
-    os.makedirs("/usr/share/glib-2.0/schemas/", exist_ok=True)
-    # In chroot "gsettings set" commands don't work, thats why we change default desktop settings
-    # https://answers.launchpad.net/cubic/+question/696919
-    shutil.copy("files/org.gnome.desktop.screensaver.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.screensaver.gschema.xml")
-    shutil.copy("files/org.gnome.settings-daemon.plugins.power.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.settings-daemon.plugins.power.gschema.xml")
-    # schemas must be recompiled after every change
-    msg, code = feedback_popen("glib-compile-schemas /usr/share/glib-2.0/schemas", os.environ["HOME"])
-    
-    # enable automatic login for user ubuntu by setting AutomaticLoginEnable and AutomaticLogin to true
-    msg, code = feedback_popen("sed -i '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true' /etc/gdm3/custom.conf", os.environ["HOME"])
-    msg, code = feedback_popen("sed -i '/AutomaticLogin .*/c\AutomaticLogin = ubuntu' /etc/gdm3/custom.conf", os.environ["HOME"])
-
-
-def install_python2():
-    msg, code = feedback_popen("apt-get install python2 -y", os.environ["HOME"])
-    msg, code = feedback_popen("curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py", os.environ["HOME"])
-    msg, code = feedback_popen("python2 get-pip.py", os.environ["HOME"])
-    msg, code = feedback_popen("pip2 install requests", os.environ["HOME"])
-    msg, code = feedback_popen("pip2 install pyserial", os.environ["HOME"])
-
-def debootstrap(use_local_mirror: bool = True):
-    ubuntu_mirror = default_ubuntu_mirror
-    if use_local_mirror:
-        ubuntu_mirror = local_ubuntu_mirror
-    subprocess.run(
-        [
-            "debootstrap",
-            "--verbose",
-            "--arch=armhf",
-            "focal",
-            conf["rootfs"],
-            ubuntu_mirror,
-        ],
-        check=True,
-    )
 
 
 def ubuntu_apt_sources(use_local_mirror: bool = False):
@@ -221,61 +177,94 @@ def is_conf_valid(conf):
                 "imagedir", 
                 "rootfs_extra_space_mb", 
                 "rootfs",
-                "hostname"}
+                "hostname",
+                "apt_get_packages"}
     for key in valid_keys:
         if key not in conf.keys():
             print("Imported conf is missing key: " + key)
             return False
+
+    # currently only possible value for release is "focal"
+    if conf["release"] != "focal":
+        print("'release' is set to "+conf["release"]+". Currently only possible value for release is 'focal'. Please correct this")
+        return False
     
     return True
+
+def subprocess_run(command):
+    print("RUNNING COMMAND: " + command)
+    subprocess.run(command, shell= True, check=True)
+
 
 def main():
     global conf
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--customization_script_path",
+        default="",
+        help="Customization script path",
+    )
+    parser.add_argument(
         "--skip_compressing_image",
         action="store_true",
         help="Weather to skip compressing final image. For debug purposes",
     )
     parser.add_argument(
-        "--config_path",
-        default="default-build-settings.yaml",
-        help="Path to settings yaml",
+        "--skip_making_image",
+        action="store_true",
+        help="Weather to skip making final image (file that ends with .img). For debug purposes. If this is true, also image compression will be skipped",
+    )
+    parser.add_argument(
+        "--git_token",
+        default="",
+        help="git token that is going to be temporary set as GIT_TOKEN in chroot session. Users can invoke that to authenticate git actions",
     )
     py_arguments, unknown = parser.parse_known_args()
 
+
+    # import of customize image script from specified path
+    if py_arguments.customization_script_path != "":
+        try:
+            ci = SourceFileLoader("customize_image", py_arguments.customization_script_path).load_module()
+            customize_image = ci.customizeImage()
+        except Exception as e:
+            print("Importing of customization script failed.")
+            print(e)
+            return
+    else:
+        sys.exit("Customization script path was not defined. This can be done with --customization_script_path argument. Exiting")
+
     # try importing settings from the config yaml file
     try:
-        with open(py_arguments.config_path) as yp:
-            conf = yaml.safe_load(yp)
-            # check if imported config is valid and exit if its not
-            if not is_conf_valid(conf):
-                return False
+        conf = customize_image.conf
+        # check if imported config is valid and exit if its not
+        if not is_conf_valid(conf):
+            return False
     except Exception as e:
-        print("Error reading " + py_arguments.config_path)
+        print("Error reading imported config from customization script")
         print(e)
 
     # create image name from the parameters imported from config
     image = str(datetime.today().date())+"-"+conf["flavour"]+"-"+conf["release"]+"-raspberry-pi.img"
 
+
     print("=========================================")
     print("Settings from scripts arguments:")
+    print("Skip making image: " + str(py_arguments.skip_making_image))
     print("Skip compressing image: " + str(py_arguments.skip_compressing_image))
-    print("Config path: " + str(py_arguments.config_path))
     print("---")
-    print("Settings from yaml:")
+    print("Settings from customization script:")
     print("Rootfs: " + conf["rootfs"])
     print("Release: " + conf["release"])
     print("Imagedir: " + conf["imagedir"])
     print("Rootfs extra space (mb): " + str(conf["rootfs_extra_space_mb"]))
+    print("Getting customization script from: " + str(py_arguments.customization_script_path))
+    print("Apt packages to install:")
+    print(*conf["apt_get_packages"])
     print("---")
-    print("Generated image name: " + image)
+    print("Will generate image with name: " + image)
     print("=========================================")
-
-    if os.path.isdir(conf["rootfs"]):
-        shutil.rmtree(conf["rootfs"])
-    debootstrap()
 
     # define chroot mountpoints
     chroot_mountpoints = {
@@ -288,235 +277,71 @@ def main():
         "./device-tree:/device-tree": {},
     }
 
-    with Chroot(conf["rootfs"], mountpoints=chroot_mountpoints):
-        ubuntu_apt_sources(use_local_mirror=True) #add ubuntu apt sources
-        apt_update() # update ubuntu apt sources first and sync time
-        ros_apt_sources() #add ros apt sources
-        ubiquity_apt_sources() #add ubiquity apt sources
-        ssl_update() #update ssl certificates if need be
+    if not os.path.isdir(conf["rootfs"]):
+        print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
+        # we run the rootfs build script with absolute path so it works both on test machines and buildbot.
+        subprocess_run("sudo python3 "+os.getcwd()+"/build_rootfs.py --rootfs " + conf["rootfs"])
+
+    # warning of the build rootfs date if that is too large
+    try:
+        # opening the build_info.yaml with r+ so we read, write and prepend new stuff 
+        with open(conf["rootfs"]+"/home/ubuntu/build_info.yaml", "r+") as f:
+            build_info = yaml.safe_load(f)
+            print("root fs build date: "+str(build_info["rootfs_build_date"]))
+            d_days = datetime.today().date()-build_info["rootfs_build_date"]
+            if d_days.days > 7:
+                print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
+
+            # add the image build date
+            d = {"image_build_date": datetime.today().date()}
+            d = yaml.dump(d, f)
+    except Exception as e:
+        print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
+        print(e)
+        exit(0)
+
+    rootfs_ext = conf["rootfs"] + "-extended"
+
+    # using rsync is faster then cp, since if doing it multiple times on same machine it takes less time
+    # options used with rsync
+    # -a  : all files, with permissions, etc..
+    # -x  : stay on one file system
+    # -H  : preserve hard links (not included with -a)
+    # -A  : preserve ACLs/permissions (not included with -a)
+    # -X  : preserve extended attributes (not included with -a)
+    # --delete: deletes files in the destination that are not present in the source.
+    subprocess_run("sudo rsync -axHAX --delete "+ conf["rootfs"]+"/" + " " + rootfs_ext+"/")
+
+    with Chroot(rootfs_ext, mountpoints=chroot_mountpoints):
+        # since we are taking an already made rootfs, the rights to some folders need to be restored
+        subprocess_run("chmod 1777 /tmp")
+        subprocess_run("chmod -R 775 /var/cache/man/")
+        
+        ssl_update()
         apt_update()
         apt_upgrade()
-        
-        # Do all of the apt installs upfront because it is slightly faster, and allows
-        # us to potentially do something smarter in the future, like extract all the
-        # packages before chrooting like debootstrap does.
-        apt_install_packages(
-            [
-                # Base metapackages for ubuntu
-                "ubuntu-minimal",
-                "ubuntu-standard",
-                # "ubuntu-server",
-                # APT Keys, in a package for easy potential updates
-                "ubiquity-archive-keyring",
-                # Common utilities
-                "vim",
-                "nano",
-                "emacs",
-                "htop",
-                "screen",
-                "tmux",
-                "at",
-                "minicom",
-                "curl",
-                "git",
-                "python3-pip",
-                "chrony",
-                "ethtool",
-                "gnupg",
-                "patch",
-                "pollinate",
-                "software-properties-common",
-                "i2c-tools",
-                "net-tools",
-                "fake-hwclock",
-                "hwclock-sync",
-                "ssl-cert",
-                # Raspberry Pi
-                "libraspberrypi-bin",
-                "libraspberrypi-dev",
-                "libraspberrypi-doc",
-                "libraspberrypi0",
-                "raspberrypi-bootloader",
-                "linux-firmware",
-                "raspi-config",
-                "pigpiod",
-                # Network Access
-                "openssh-server",
-                "libnss-mdns",
-                "avahi-daemon",
-                "pifi",
-                # ROS
-                "ros-noetic-ros-base",
-                "python3-rosdep",
-                "ros-noetic-raspicam-node",
-                "ros-noetic-pi-sonar",
-                "ros-noetic-ubiquity-motor",
-                "ros-noetic-oled-display-node",
-                "ros-noetic-move-basic",
-                "ros-noetic-fiducials",
-                "ros-noetic-magni-robot",
-                "ros-noetic-teleop-twist-keyboard",
-                "ros-noetic-carrot-planner", # Required but not properly installed by magni-robot
-                "cairosvg",  # Required but not properly installed by fiducals
-                "poppler-utils",  # Required but not properly installed by fiducals
-            ]
-        )
 
-        # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
-        # TODO: When firmware upgrading migrates to py3, this can be removed
-        install_python2()
+        # set git token as temporary global variable so external apt packages can easily authenticate 
+        # git actions using command "git clone https://$GIT_TOKEN@github.com/repolik.git"
+        if py_arguments.git_token != "":
+            os.environ["GIT_TOKEN"] = py_arguments.git_token
 
-        # Installing and configuring desktop environment
-        install_destop_environment()
+        print("========== now installing external apt packages ==============")
 
-        groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
-        for group in groups:
-            subprocess.run(["groupadd", "-f", "--system", group], check=True)
+        apt_install_packages(conf["apt_get_packages"])
 
-        shutil.copy("/files/adduser.local", "/usr/local/sbin/adduser.local")
-        linux_util.make_executable("/usr/local/sbin/adduser.local")
-
-        # Setup the robot config
-        os.makedirs("/etc/ubiquity", exist_ok=True)
-        shutil.copy("/files/robot.yaml", "/etc/ubiquity/robot.yaml")
-        with open("/etc/ubiquity/env.sh", "w+") as f:
-            f.write("export ROS_HOSTNAME=$(hostname).local\n")
-            f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
-        with open("/etc/ubiquity/ros_setup.sh", "w+") as f:
-            f.write(". /opt/ros/noetic/setup.sh\n")
-            f.write(
-                "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.sh && test -f $catkin_setup && . $catkin_setup\n"
-            )
-            f.write(". /etc/ubiquity/env.sh\n")
-        with open("/etc/ubiquity/ros_setup.bash", "w+") as f:
-            f.write("source /opt/ros/noetic/setup.bash\n")
-            f.write(
-                "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
-            )
-            f.write("source /etc/ubiquity/env.sh\n")
-
-        # Make modifying the configs available to UI apps, and less of a hassle in general
-        subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
-
-        # Source ROS environment in the default bashrc for new users before creating the ubuntu user
-        with open("/etc/skel/.bashrc", "a") as f:
-            ros_source = "\n"
-            ros_source += "source /etc/ubiquity/ros_setup.bash\n"
-            f.write(ros_source)
-
-        linux_util.create_user("ubuntu", "ubuntu")
-        linux_util.add_user_sudo("ubuntu")
-
-        # Init rosdep
-        subprocess.run(["rosdep", "init"], check=True)
-        subprocess.run(["rosdep", "update"], check=True)
-        linux_util.run_as_user("ubuntu", ["rosdep", "update"])
-
-        # Create catkin_ws
-        os.makedirs("/home/ubuntu/catkin_ws/src")
-        subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/catkin_ws"])
-        linux_util.run_as_user(
-            "ubuntu",
-            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_init_workspace"],
-            cwd="/home/ubuntu/catkin_ws/src",
-            check=True,
-        )
-        linux_util.run_as_user(
-            "ubuntu",
-            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make"],
-            cwd="/home/ubuntu/catkin_ws",
-            check=True,
-        )
-
-        setup_networking(conf["hostname"])
-
-        # Set up fstab
-        with open("/etc/fstab", "w+") as f:
-            fstab = """proc            /proc           proc    defaults          0       0
-/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
-/dev/mmcblk0p1  /boot/          vfat    defaults          0       2
-"""
-            f.write(fstab)
-
-        shutil.copy("/files/config.txt", "/boot/config.txt")
-        with open("/boot/cmdline.txt", "w") as f:
-            cmdline = "dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait quiet splash plymouth.ignore-serial-consoles init=/usr/lib/raspi-config/init_resize.sh"
-            f.write(cmdline)
-
-        # Enable i2c module on boot
-        with open("/etc/modules", "a") as f:
-            f.write("\ni2c-dev\n\n")
-
-        # Enable resizefs
-        shutil.copy("/files/resize2fs_once", "/etc/init.d/resize2fs_once")
-        subprocess.run(["systemctl", "enable", "resize2fs_once"], check=True)
-
-        # These 2 firmware directories are large, and we are never going to use them on a Pi
-        shutil.rmtree("/usr/lib/firmware/netronome")
-        shutil.rmtree("/usr/lib/firmware/amdgpu")
-
-        shutil.copy("/files/pifi.conf", "/etc/pifi/pifi.conf")
-        shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
-
-        # Copy device tree overlay for pifi buttons
-        shutil.copy(
-            "/device-tree/ubiquity-led-buttons.dtbo",
-            "/boot/overlays/ubiquity-led-buttons.dtbo",
-        )
-
-        # Enable pigpio daemon that we use for sonars
-        subprocess.run(["systemctl", "enable", "pigpiod.service"], check=True)
-
-        # Enable systemd-networkd that we use for ethernet
-        subprocess.run(["systemctl", "enable", "systemd-networkd.service"], check=True)
-
-        # Enable auto-starting magni-base
-        shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service")
-        subprocess.run(["systemctl", "enable", "roscore.service"], check=True)
-        subprocess.run(["systemctl", "enable", "magni-base.service"], check=True)
-
-        # Customize Message of The Day that shows up at login
-        # We don't want to link to Ubuntu's help documents (because we are heavily modified)
-        subprocess.run(["chmod", "-x", "/etc/update-motd.d/10-help-text"], check=True)
-        # We don't want to notify about LTS upgrades because running that upgrade usually breaks ROS
-        subprocess.run(["chmod", "-x", "/etc/update-motd.d/91-release-upgrade"], check=True)
-        with open("/etc/update-motd.d/50-ubiquity", "w+") as f:
-            motd = """#!/bin/sh
-
-echo ""
-echo "Welcome to the Ubiquity Robotics Raspberry Pi Image"
-echo "Learn more: https://learn.ubiquityrobotics.com"
-echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
-echo ""
-echo "Wifi can be managed with pifi (pifi --help for more info)"
-echo ""
-echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out line dtoverlay=i2c-rtc,mcp7940x in /boot/config.txt to shorthen boot times"
-"""
-            f.write(motd)
-        subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
-
-        # Locales, ugly shell to generate all English UTF-8 locales
-        subprocess.run(
-            "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs -L 1 locale-gen",
-            shell=True,
-            check=True,
-        )
-
-        # The file is missing on Focal by default, compared to Xenial, so chroot throws weird errors
-        # On the Xenial image the file's content is one entry: /usr/lib/arm-linux-gnueabihf/libarmmem.so
-        # It's unclear what it does, if it should be added here as well or not, but leaving the file empty seems to be enough to clear up chroot errors
-        subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
+        if py_arguments.customization_script_path != "":
+            print("========== now running external customizations ===============")
+            customize_image.execute_customizations()
+            print("========== end of external customizations ====================")
 
         chroot_cleanup()
-
-    # Something is creating a file that is in focal-build/focal-build, we want to get rid of it
-    # shutil.rmtree("/focal-build/focal-build")
-
+    
     # Calculate size of rootfs
-    rootfs_size = linux_util.du_mb(conf["rootfs"])
+    rootfs_size = linux_util.du_mb(rootfs_ext)
     print(f"Root FS is {rootfs_size} MiB")
 
-    # Leave 500 MiB free space in the root partition
+    # Leave free space in the root partition
     root_part_size = rootfs_size + conf["rootfs_extra_space_mb"]
     print(f"Root Part will be {root_part_size} MiB")
 
@@ -525,56 +350,60 @@ echo "If RPI is not connected to Ubiquity Robotics MCB, make sure to comment out
     if not os.path.isdir(conf["imagedir"]):
         subprocess.run(["mkdir", "-p", conf["imagedir"]], check=True)
 
-    # remove image file if it already exsists
-    if os.path.exists(conf["imagedir"]+"/"+image):
-        os.remove(conf["imagedir"]+"/"+image)
+    # don't make image if the flag skip_making_image is true
+    if not py_arguments.skip_making_image:
+        # remove image file if it already exsists
+        if os.path.exists(conf["imagedir"]+"/"+image):
+            os.remove(conf["imagedir"]+"/"+image)
 
-    # create image file
-    image_util.create_image_file(conf["imagedir"]+"/"+image, 128, root_part_size)
+        # create image file
+        image_util.create_image_file(conf["imagedir"]+"/"+image, 128, root_part_size)
 
-    print("Created image: "+conf["imagedir"]+"/"+image)
+        print("Created image: "+conf["imagedir"]+"/"+image)
 
-    with image_util.loopdev_context_manager(conf["imagedir"]+"/"+image) as loop:
-        boot_loop = loop + "p1"
-        root_loop = loop + "p2"
-        subprocess.run(
-            ["mkfs.vfat", "-n", "BOOT", "-S", "512", "-s", "16", "-v", boot_loop],
-            check=True,
-        )
+        with image_util.loopdev_context_manager(conf["imagedir"]+"/"+image) as loop:
+            boot_loop = loop + "p1"
+            root_loop = loop + "p2"
+            subprocess.run(
+                ["mkfs.vfat", "-n", "BOOT", "-S", "512", "-s", "16", "-v", boot_loop],
+                check=True,
+            )
 
-        subprocess.run(
-            ["mkfs.ext4", "-L", "ROOT", "-m", "0", "-O", "^huge_file", root_loop],
-            check=True,
-        )
+            subprocess.run(
+                ["mkfs.ext4", "-L", "ROOT", "-m", "0", "-O", "^huge_file", root_loop],
+                check=True,
+            )
 
-        with image_util.mount_context_manager(root_loop, "mount", "ext4"):
-            os.makedirs("mount/boot", exist_ok=True)
-            with image_util.mount_context_manager(boot_loop, "mount/boot", "vfat"):
-                # rsync errors on copying some attrs to /boot because it is fat
-                # so we disable the check for the subprocess call. We should find
-                # a better solution, like figuring out how to ignore only the expected error.
-                subprocess.run(["rsync", "-aHAXx", conf["rootfs"] + "/", "mount/"], check=False)
+            with image_util.mount_context_manager(root_loop, "mount", "ext4"):
+                os.makedirs("mount/boot", exist_ok=True)
+                with image_util.mount_context_manager(boot_loop, "mount/boot", "vfat"):
+                    # rsync errors on copying some attrs to /boot because it is fat
+                    # so we disable the check for the subprocess call. We should find
+                    # a better solution, like figuring out how to ignore only the expected error.
+                    print("The next couple of rsync executions will fail with 'Operation not permitted'. This can be ignored.")
+                    subprocess.run(["rsync", "-aHAXx", rootfs_ext + "/", "mount/"], check=False)
 
-    if not py_arguments.skip_compressing_image:
-        print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
-        # if file already exsists, delete it
-        if os.path.exists(conf["imagedir"]+"/"+image+".xz"):
-            os.remove(conf["imagedir"]+"/"+image+".xz")
-        # execute compression
-        msg, code = feedback_popen("xz -4 "+conf["imagedir"]+"/"+image, os.environ["HOME"])
-        if code != 0:
-            print(str(msg))
+            # don't compress image if skip_compressing_image is true
+            if not py_arguments.skip_compressing_image:
+                print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
+                # if file already exists, delete it
+                if os.path.exists(conf["imagedir"]+"/"+image+".xz"):
+                    os.remove(conf["imagedir"]+"/"+image+".xz")
+                # execute compression
+                subprocess.run(["xz", "-4", conf["imagedir"]+"/"+image], check=False)
+            else:
+                print("Skipping compression of image")
+
+            print("Overwriting latest_image with: "+conf["imagedir"]+"/"+image)
+            # overwrite latest_image the name of the latest image for buildbot to be able to upload
+            f = open("latest_image", "w")
+            f.write(conf["imagedir"]+"/"+image)
+            subprocess.run(["chmod", "a+r", "latest_image"], check=False)
+            f.close()
     else:
-        print("Skipping compression of image")
+        print("Skipping making of .img file")
 
-    print("Overwriting latest_image with: "+conf["imagedir"]+"/"+image)
-    # overwrite latest_image the name of the latest image for buildbot to be able to upload
-    f = open("latest_image", "w")
-    f.write(conf["imagedir"]+"/"+image)
-    feedback_popen("chmod a+r latest_image", os.getcwd())
-    f.close()
-
-    print("Image build successfully")
+    print("Script ending successfully")
 
 if __name__ == "__main__":
     main()

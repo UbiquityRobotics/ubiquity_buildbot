@@ -633,7 +633,8 @@ gpu_mem=128
 ##
 ##     Default 115200
 ##
-#init_uart_baud=115200
+## uart baud must be 38400 as per https://github.com/UbiquityRobotics/ubiquity_motor/issues/154 
+init_uart_baud=38400
 
 ## init_uart_clock
 ##     Initial uart clock.
@@ -1206,3 +1207,6 @@ core_freq=250
 dtoverlay=i2c-rtc,mcp7940x
 
 dtoverlay=ubiquity-led-buttons
+
+# disable rainbow splash screen for faster booting
+disable_splash=1

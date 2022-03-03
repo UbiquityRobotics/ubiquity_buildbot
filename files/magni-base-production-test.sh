@@ -29,7 +29,14 @@ log info "magni-base: Launching ROS_HOSTNAME=$ROS_HOSTNAME, ROS_IP=$ROS_IP, ROS_
 # Punch it.
 export ROS_HOME=$(echo ~ubuntu)/.ros
 export ROS_LOG_DIR=$log_path
-roslaunch --wait -v magni_bringup base.launch
+# upgrading firmware still wasnt ported to py3 https://github.com/UbiquityRobotics/ubiquity_motor/issues/149
+# untill that is done, we have to do it with python2 and absolute paths
+python2 /home/ubuntu/catkin_ws/src/ubiquity_motor/scripts/upgrade_firmware.py --file /home/ubuntu/v43_20210829_enc.cyacd
+roslaunch --wait -v magni_bringup base.launch& # launhces base
+roslaunch magni_nav move_basic.launch& #launches move basic
+./home/ubuntu/production_test.py # sends the goal to the robot
+sudo poweroff #turns off the robot
+
 PID=$!
 
 log info "magni-base: Started roslaunch as background process, PID $PID, ROS_LOG_DIR=$ROS_LOG_DIR"
