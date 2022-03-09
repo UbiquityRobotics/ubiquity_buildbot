@@ -288,7 +288,8 @@ def main():
                 "ros-noetic-ros-base",
                 "python3-rosdep",
                 # magni common,
-                "ros-noetic-magni-robot" #needed to enable magni-base.service
+                "ros-noetic-magni-robot", #needed to enable magni-base.service,
+                "ros-noetic-pcl-ros" # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
             ]
         )
 

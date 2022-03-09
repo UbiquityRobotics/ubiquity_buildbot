@@ -4,9 +4,9 @@ import shutil
 
 class customizeImage:
 	def __init__(self):
-		# there needs to exsist a dictionary with name "conf" the following variables:
+		# there needs to exist a dictionary with name "conf" the following variables:
 		# "hostname": hostname that the image is going to have setup.
-		# "rootfs_extra_space_mb": how much more space will be alocated in rootfs in generated image.
+		# "rootfs_extra_space_mb": how much more space will be allocated in rootfs in generated image.
 		# "rootfs": absolute path on buildbot filesystem where generated rootfs will be saved
 		# "flavour": flavour of generated image. The name of generated image will be: ${timestamp}-${flavour}-${release}-raspberry-pi.img
 		# "release": release of the generated image. Currently only possible value is "focal".
