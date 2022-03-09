@@ -17,6 +17,10 @@ from datetime import datetime
 import yaml
 from importlib.machinery import SourceFileLoader
 
+# append this path to sys path so the python files from all subdirectories
+# can be found by and python script - needed for sharing common 
+# customizations scripts 
+sys.path.append(os.getcwd())
 
 # global conf file
 conf = dict()
