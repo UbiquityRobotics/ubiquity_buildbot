@@ -461,6 +461,8 @@ if hwclock --show > /dev/null 2>&1; then
         echo ""
     fi
 fi
+
+echo "This is a beta2 release. Please report any problems to: "
 """
             f.write(motd)
         subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
