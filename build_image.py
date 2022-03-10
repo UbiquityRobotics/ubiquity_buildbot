@@ -339,6 +339,14 @@ def main():
             customize_image.execute_customizations()
             print("========== end of external customizations ====================")
 
+        # again compile anything in /home/ubuntu/catkin_ws. This allows that each customization does
+        # not have to compile everything separately which would take longer time 
+        linux_util.run_as_user(
+            "ubuntu",
+            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
+            cwd="/home/ubuntu/catkin_ws",
+            check=True,
+        )
         chroot_cleanup()
     
     # Calculate size of rootfs

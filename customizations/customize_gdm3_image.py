@@ -1,8 +1,7 @@
 import subprocess
 import os
 import shutil
-from customizations import common_customizations
-
+from common_img_mods import gdm3_mod
 class customizeImage:
 	def __init__(self):
 		# there needs to exist a dictionary with name "conf" the following variables:
@@ -37,6 +36,5 @@ class customizeImage:
 		}
 		
 	def execute_customizations(self):
-		cc = common_customizations.commonCustomizations()
-		cc.install_gmd3()
+		gdm3_mod.install()
 		return
