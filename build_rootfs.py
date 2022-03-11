@@ -465,11 +465,24 @@ fi
         subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
 
         # Locales, ugly shell to generate all English UTF-8 locales
+        # We may choose to generate more/less locales in the future, but this seems like a good setupfor now
         subprocess.run(
-            "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs -L 1 locale-gen",
+            "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs locale-gen",
             shell=True,
             check=True,
         )
+
+        # SSH Key Regeneration
+        # We want to make sure that SSH keys are unique per host, thats why 
+        # we delete all old keys and enable sshdgenkeys.service which generates
+        # new keys on first boot
+        shutil.copy("/files/sshdgenkeys.service", "/lib/systemd/system/sshdgenkeys.service")
+        os.makedirs("/etc/systemd/system/sshd.service.wants/", exist_ok=True)
+        subprocess.run(["systemctl", "enable", "sshdgenkeys.service"], check=True)
+        # forget all host keys from history to start from a clean slate
+        # keys will be regenerated on first boot
+        subprocess.run(["rm -f /etc/ssh/ssh_host_*key"], shell=True, check=True)
+        subprocess.run(["rm -f /etc/ssh/ssh_host_*.pub"], shell=True, check=True)
 
         # The file is missing on Focal by default, compared to Xenial, so chroot throws weird errors
         # On the Xenial image the file's content is one entry: /usr/lib/arm-linux-gnueabihf/libarmmem.so
