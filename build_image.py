@@ -281,6 +281,7 @@ def main():
         "./device-tree:/device-tree": {},
     }
 
+    # if the rootfs is not already built, trigger for it to be built automatically
     if not os.path.isdir(conf["rootfs"]):
         print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
         # we run the rootfs build script with absolute path so it works both on test machines and buildbot.
@@ -297,7 +298,8 @@ def main():
                 print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
 
             # add the image build date
-            d = {"image_build_date": datetime.today().date()}
+            d = {"image_build_date": datetime.today().date(),
+                 "image_name": image}
             d = yaml.dump(d, f)
     except Exception as e:
         print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")

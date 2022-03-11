@@ -32,5 +32,4 @@ def install():
 	# enable automatic login for user ubuntu by setting AutomaticLoginEnable and AutomaticLogin to true
 	subprocess.run(["sed", "-i", '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true', "/etc/gdm3/custom.conf"], check=True)
 	subprocess.run(["sed", "-i", '/AutomaticLogin .*/c\AutomaticLogin = ubuntu', "/etc/gdm3/custom.conf"], check=True)
-	print("=============== INSTALLING GDM FINISHED =======")
 	return

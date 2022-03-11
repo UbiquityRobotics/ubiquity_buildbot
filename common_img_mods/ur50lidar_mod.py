@@ -1,6 +1,7 @@
 import subprocess
 
 def install():
+    print("=============== INSTALLING UR50 ===============")
     # clone the driver for the ur50 lidar driver. 
     subprocess.run("git clone https://$GIT_TOKEN@github.com/UbiquityRobotics/ls_lidar_driver.git", 
                     shell=True, 
