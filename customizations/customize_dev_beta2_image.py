@@ -61,4 +61,7 @@ class customizeImage:
 		subprocess.run(["sed", "-i", '/AutomaticLoginEnable.*/c\AutomaticLoginEnable = true', "/etc/gdm3/custom.conf"], check=True)
 		subprocess.run(["sed", "-i", '/AutomaticLogin .*/c\AutomaticLogin = ubuntu', "/etc/gdm3/custom.conf"], check=True)
 
+		beta_text = 'echo "This is a beta2 release. Please report any problems to Ubiquity Robotics Discourse"'
+		subprocess.run("echo '" + beta_text + "' >> /etc/update-motd.d/50-ubiquity", check=True, shell=True)
+
 		return
