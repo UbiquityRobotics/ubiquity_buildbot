@@ -29,7 +29,7 @@ log info "magni-base: Launching ROS_HOSTNAME=$ROS_HOSTNAME, ROS_IP=$ROS_IP, ROS_
 # Punch it.
 export ROS_HOME=$(echo ~ubuntu)/.ros
 export ROS_LOG_DIR=$log_path
-roslaunch --wait -v magni_bringup base.launch
+rosrun magni_bringup launch_core.py
 PID=$!
 
 log info "magni-base: Started roslaunch as background process, PID $PID, ROS_LOG_DIR=$ROS_LOG_DIR"
