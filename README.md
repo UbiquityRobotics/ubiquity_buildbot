@@ -10,6 +10,8 @@ TODO - its not suggested to do this on RPI as it takes a long time. But it is po
 ### Setting up a build on AWS server
 **Setting up a build machine**
 
+Usually when you've made changes to the image creation you want to test and/or debug it. This can be best done with setting up a build with AWS server manually. 
+
 Here is how you configure an AWS instance for building a new image:
 
 https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Admin -> `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
@@ -57,6 +59,14 @@ To see other available options run:
     python3 build_image.py -h
 
 In any case, the build will take a while, so you might as well grab a coffee :)
+
+### Setting up a build with Buildbot
+Eventually you'd probably want to set up the images to be build through ubiquity buildbot on https://build.ubiquityrobotics.com/ with only a click of a button. This is still a work in progress, but the basic example of how to do that can be found at 
+
+https://github.com/UbiquityRobotics/ubiquity_buildbot/blob/23db6ff3a720d14e6e5c9d64c75255f70d9862f5/master.cfg#L378
+
+TODO make instructions for buildbot better
+
 
 --- 
 
@@ -137,6 +147,7 @@ Here is a detailed overview of the architecture of the pi_image2 files:
      - `flavour` - flavour of generated image. The name of generated image will be: `${timestamp}-${flavour}-${release}-raspberry-pi.img`. This is an arbitrary string that is only used for generating the name of image and usually determines the name of project or specific speciality of the image that will be generated.
      - `release` - release of the generated image. Currently only possible value is "focal".
      - `imagedir` - absolute path on buildbot filesystem where generated image will be saved (can be value `/image-builds/final-images` if nothing special is required)
+     - `apt_get_packages` - list of apt packages that need to be installed in the generated image. These apt packages will be installed BEFORE `execute_customizations()` is called.
 
     all of these parameters must be present inside `self.conf` otherwise `build_image.py` will return an error.
 
@@ -162,6 +173,9 @@ Here is a detailed overview of the architecture of the pi_image2 files:
 4. `customizations/` folder contains customization scripts for making images that do not have their own project repo. (eg. base image, gdm image, ...)
 
 5. `files/` folder contains config files that are copied over to rootfs to specify some image configurations.
+
+
+
 
 ### Design choices
 
