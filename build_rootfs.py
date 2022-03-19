@@ -354,6 +354,22 @@ def main():
             check=True,
         )
 
+        # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
+        linux_util.run_as_user(
+            "ubuntu",
+            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor.git"],
+            cwd="/home/ubuntu/catkin_ws/src",
+            check=True,
+        )
+
+        # compile and source
+        linux_util.run_as_user(
+            "ubuntu",
+            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make"],
+            cwd="/home/ubuntu/catkin_ws",
+            check=True,
+        )
+
         setup_networking(py_arguments.hostname)
 
         # Set up fstab

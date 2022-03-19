@@ -24,7 +24,7 @@ class customizeImage:
 				"gdm3",
 				"ros-noetic-raspicam-node",
 				"ros-noetic-pi-sonar",
-				"ros-noetic-ubiquity-motor",
+				# "ros-noetic-ubiquity-motor", removed because cloned and compiled in rootfs because of apt problems TODO - uncomment when apt update of this is figured out
 				"ros-noetic-oled-display-node",
 				"ros-noetic-move-basic",
 				"ros-noetic-fiducials",
