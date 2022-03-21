@@ -285,7 +285,7 @@ def main():
     if not os.path.isdir(conf["rootfs"]):
         print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
         # we run the rootfs build script with absolute path so it works both on test machines and buildbot.
-        subprocess_run("sudo python3 "+os.getcwd()+"/build_rootfs.py --rootfs " + conf["rootfs"])
+        subprocess_run("sudo python3 "+os.getcwd()+"/build_rootfs.py --rootfs " + conf["rootfs"] + " --hostname " + conf["hostname"])
 
     # warning of the build rootfs date if that is too large
     try:
