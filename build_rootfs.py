@@ -307,9 +307,7 @@ def main():
         os.makedirs("/etc/systemd/system/apt-daily.timer.d/", exist_ok=True)
         shutil.copy("/files/override.conf", "/etc/systemd/system/apt-daily.timer.d/override.conf")
 
-        # Setup the robot config
         os.makedirs("/etc/ubiquity", exist_ok=True)
-        shutil.copy("/files/robot.yaml", "/etc/ubiquity/robot.yaml")
         with open("/etc/ubiquity/env.sh", "w+") as f:
             f.write("export ROS_HOSTNAME=$(hostname).local\n")
             f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
@@ -373,6 +371,20 @@ def main():
             cwd="/home/ubuntu/catkin_ws",
             check=True,
         )
+ 
+        # placing robot.yaml into /etc/ubiquity/
+        config_catkin_path = "/home/ubuntu/catkin_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
+        config_apt_path = "/opt/ros/noetic/share/magni_bringup/config/default_robot.yaml"
+        # if magni_robot is installed with apt compiled in ~catkin_ws:
+        if os.path.isfile(config_catkin_path):
+            shutil.copy(config_catkin_path, "/etc/ubiquity/robot.yaml")
+        # if magni_robot is installed with apt:
+        elif os.path.isfile(config_apt_path):
+            shutil.copy(config_apt_path, "/etc/ubiquity/robot.yaml")
+        # otherwise bring up warning and exit
+        else:
+            print("Could not find config on paths: " + config_catkin_path + " OR " + config_apt_path)
+            return -1
 
         setup_networking(py_arguments.hostname)
 
