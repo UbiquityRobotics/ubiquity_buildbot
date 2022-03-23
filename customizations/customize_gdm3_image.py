@@ -13,7 +13,7 @@ class customizeImage:
 		# "imagedir": absolute path on buildbot filesystem where generated image will be saved
 		# "apt_get_packages":
 		self.conf = {
-			"hostname": "ubuntu",
+			"hostname": "ubiquityrobot",
 			"rootfs_extra_space_mb": 500,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
 			"flavour": "ubiquity-gdm3-testing",
