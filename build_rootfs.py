@@ -288,7 +288,8 @@ def main():
                 "ros-noetic-ros-base",
                 "python3-rosdep",
                 # magni common,
-                "ros-noetic-magni-robot" #needed to enable magni-base.service
+                "ros-noetic-magni-robot", #needed to enable magni-base.service,
+                "ros-noetic-pcl-ros" # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
             ]
         )
 
@@ -350,20 +351,15 @@ def main():
             cwd="/home/ubuntu/catkin_ws/src",
             check=True,
         )
-        # clone the noetic branch of magni robot TODO - when apt update of this is figured out, cloning this can be removed
+
+        # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
         linux_util.run_as_user(
             "ubuntu",
-            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/magni_robot.git --branch noetic-devel"],
+            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor.git"],
             cwd="/home/ubuntu/catkin_ws/src",
             check=True,
         )
-        # clone the oled display node TODO - when apt update of this is figured out, cloning this can be removed
-        linux_util.run_as_user(
-            "ubuntu",
-            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/oled_display_node.git"],
-            cwd="/home/ubuntu/catkin_ws/src",
-            check=True,
-        )
+
         # compile and source
         linux_util.run_as_user(
             "ubuntu",
