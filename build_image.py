@@ -308,6 +308,12 @@ def main():
 
     rootfs_ext = conf["rootfs"] + "-extended"
 
+    # if present delete /var in rootfs_ext which sometimes causes problems from previous installations
+    # solving https://github.com/UbiquityRobotics/pi_image2/issues/49
+    if os.path.isdir(rootfs_ext+"/var/"):
+        print("Removing " + rootfs_ext + "/var/")
+        shutil.rmtree(rootfs_ext+"/var/")
+
     # using rsync is faster then cp, since if doing it multiple times on same machine it takes less time
     # options used with rsync
     # -a  : all files, with permissions, etc..
