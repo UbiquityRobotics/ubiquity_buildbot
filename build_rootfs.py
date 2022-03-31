@@ -363,7 +363,7 @@ def main():
         # compile and source
         linux_util.run_as_user(
             "ubuntu",
-            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make"],
+            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
             cwd="/home/ubuntu/catkin_ws",
             check=True,
         )
