@@ -369,6 +369,10 @@ def main():
         )
  
         # placing robot.yaml into /etc/ubiquity/
+        # default_robot.yaml which gets copied to /etc/ubiquity/robot.yaml lives in magni_bringup package.
+        # magni_bringup package gets installed with either apt OR directly compiled in ~/catkin_ws/.
+        # however installed, getting robot.yaml from one of them is handeled here with the ~/catkin_ws having
+        # priority if both cases are true
         config_catkin_path = "/home/ubuntu/catkin_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
         config_apt_path = "/opt/ros/noetic/share/magni_bringup/config/default_robot.yaml"
         # if magni_robot is installed with apt compiled in ~catkin_ws:
