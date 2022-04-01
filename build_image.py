@@ -308,13 +308,13 @@ def main():
 
     rootfs_ext = conf["rootfs"] + "-extended"
 
-    # if present delete /var in rootfs_ext which sometimes causes problems from previous installations
+    # if present delete rootfs_ext (which is the case if images are built multiple times on same machine/instance) 
     # solving https://github.com/UbiquityRobotics/pi_image2/issues/49
-    if os.path.isdir(rootfs_ext+"/var/"):
-        print("Removing " + rootfs_ext + "/var/")
-        shutil.rmtree(rootfs_ext+"/var/")
+    if os.path.isdir(rootfs_ext):
+        print("Removing " + rootfs_ext)
+        shutil.rmtree(rootfs_ext)
 
-    # using rsync is faster then cp, since if doing it multiple times on same machine it takes less time
+    # using rsync is faster then cp
     # options used with rsync
     # -a  : all files, with permissions, etc..
     # -x  : stay on one file system
