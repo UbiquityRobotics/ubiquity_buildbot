@@ -147,8 +147,8 @@ Here is a detailed overview of the architecture of the pi_image2 files:
      - `flavour` - flavour of generated image. The name of generated image will be: `${timestamp}-${flavour}-${release}-raspberry-pi.img`. This is an arbitrary string that is only used for generating the name of image and usually determines the name of project or specific speciality of the image that will be generated.
      - `release` - release of the generated image. Currently only possible value is "focal".
      - `imagedir` - absolute path on buildbot filesystem where generated image will be saved (can be value `/image-builds/final-images` if nothing special is required)
-     - `apt_get_packages` - list of apt packages that need to be installed in the generated image. These apt packages will be installed BEFORE `execute_customizations()` is called.
-
+     - `apt_get_packages` - list of apt packages that need to be installed in the generated image. These apt packages will be installed BEFORE `execute_customizations()` is called. Note that image that the customizations are going to be executed on already comes with some apt packages pre-installed. Which apt packages exactly come pre-installed can be checked inside [build_rootfs.py -> main() -> apt_install_packages](https://github.com/UbiquityRobotics/pi_image2/blob/35e20cb6ba0ae049ed316580fdcd23a4f268fb35/build_rootfs.py#L242)
+  
     all of these parameters must be present inside `self.conf` otherwise `build_image.py` will return an error.
 
     b) customizations
@@ -184,3 +184,5 @@ Here is a detailed overview of the architecture of the pi_image2 files:
  - Why does the image have only a startup message how to lower boot time and not some other slicker solutions: RPI does not have internal hardware RTC so we are getting then from MCB. If MCB is not connected, there are long boot times because RPI waits for hardware RTC to be connected and we could not find how to lower that timeout through either `hwrtc-sync` or with `systemctl`. https://github.com/UbiquityRobotics/pi_image2/issues/33
 
  - why have we moved form yaml configuration folder to python customization scripts: We enabled users to do project-specific customizations to base image filesystem from project repos. It then made no sense to have a separate yaml file besides that script to as a configuration folder. The configurations were implemented as part of the script in the https://github.com/UbiquityRobotics/pi_image2/commit/671d99201d6be16e9ba63a37f31ec4fc3110ffde. The decision for this was discussed in https://github.com/UbiquityRobotics/pi_image2/pull/28#issuecomment-1047214238
+
+ - one of the things that `build_rootfs.py` does is installs important deb packages that are STRICTLY necessary for ALL images that are going to be generated with pi_image2. We've made a choice to leave some important packages (eg. "ros-noetic-raspicam-node","ros-noetic-pi-sonar", "ros-noetic-ubiquity-motor", "ros-noetic-oled-display-node", "ros-noetic-move-basic",...) out of `build_rootfs.py` because specific projects might require those packages be included into images rather with cloning and compiling for debugging purposes or because different branch of those specific repos is needed.

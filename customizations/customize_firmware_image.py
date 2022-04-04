@@ -12,6 +12,7 @@ class customizeImage:
 		# "flavour": flavour of generated image. The name of generated image will be: ${timestamp}-${flavour}-${release}-raspberry-pi.img
 		# "release": release of the generated image. Currently only possible value is "focal".
 		# "imagedir": absolute path on buildbot filesystem where generated image will be saved
+		# "apt_get_packages": apt packages that need to be installed onto the image
 		self.conf = {
 			"hostname": "ubuntu",
 			"rootfs_extra_space_mb": 500,
