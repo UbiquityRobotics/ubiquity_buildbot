@@ -144,7 +144,7 @@ Here is a detailed overview of the architecture of the pi_image2 files:
      - `hostname` - internet hostname that the image is going to have setup.
      - `rootfs_extra_space_mb` -  how much extra space will be allocated in rootfs in generated image.
      - `rootfs` - absolute path on buildbot filesystem where generated rootfs will be saved (can be value `/image-builds/PiFlavourMaker/focal-build` if nothing special is required)
-     - `flavour` - flavour of generated image. The name of generated image will be: `${timestamp}-${flavour}-${release}-raspberry-pi.img`. This is an arbitrary string that is only used for generating the name of image and usually determines the name of project or specific speciality of the image that will be generated.
+     - `flavour` - flavour of generated image. The name of generated image will be: `${timestamp}-${flavour}-${release}-raspberry-pi.img`. This is an arbitrary string that is only used for generating the name of image and usually determines the name of project or specific specialty of the image that will be generated.
      - `release` - release of the generated image. Currently only possible value is "focal".
      - `imagedir` - absolute path on buildbot filesystem where generated image will be saved (can be value `/image-builds/final-images` if nothing special is required)
      - `apt_get_packages` - list of apt packages that need to be installed in the generated image. These apt packages will be installed BEFORE `execute_customizations()` is called. Note that image that the customizations are going to be executed on already comes with some apt packages pre-installed. Which apt packages exactly come pre-installed can be checked inside [build_rootfs.py -> main() -> apt_install_packages](https://github.com/UbiquityRobotics/pi_image2/blob/35e20cb6ba0ae049ed316580fdcd23a4f268fb35/build_rootfs.py#L242)
@@ -161,7 +161,7 @@ Here is a detailed overview of the architecture of the pi_image2 files:
             return
 
 
-    Whatever is defined inside of this function is exectuted through chroot directly inside the generated image. It is through these commands that the user can "customize" the image by using all kinds of python commands. Usually the follwoing commands are used:
+    Whatever is defined inside of this function is executed through chroot directly inside the generated image. It is through these commands that the user can "customize" the image by using all kinds of python commands. Usually the following commands are used:
 
      - `open()`
      - `os.makedirs()`
@@ -172,9 +172,9 @@ Here is a detailed overview of the architecture of the pi_image2 files:
 
 4. `customizations/` folder contains customization scripts for making images that do not have their own project repo. (eg. base image, gdm image, ...)
 
+5. `common_img_mods/` folder contains common mods considered to be of use to a wide variety of internal and external images. These mod simply define `install()` python functions that get included and used in the customization scripts. Example of using the common mod for installing gdm3 (desktop environment) can be seen in [customize_gdm3_image.py](customizations/customize_gdm3_image.py). Check out what is inside `common_img_mods/` to see all available mods, and more can be added in the future.
+
 5. `files/` folder contains config files that are copied over to rootfs to specify some image configurations.
-
-
 
 
 ### Design choices
