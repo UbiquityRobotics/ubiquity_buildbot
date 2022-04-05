@@ -308,9 +308,7 @@ def main():
         os.makedirs("/etc/systemd/system/apt-daily.timer.d/", exist_ok=True)
         shutil.copy("/files/override.conf", "/etc/systemd/system/apt-daily.timer.d/override.conf")
 
-        # Setup the robot config
         os.makedirs("/etc/ubiquity", exist_ok=True)
-        shutil.copy("/files/robot.yaml", "/etc/ubiquity/robot.yaml")
         with open("/etc/ubiquity/env.sh", "w+") as f:
             f.write("export ROS_HOSTNAME=$(hostname).local\n")
             f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
@@ -353,27 +351,40 @@ def main():
             cwd="/home/ubuntu/catkin_ws/src",
             check=True,
         )
-        # clone the noetic branch of magni robot TODO - when apt update of this is figured out, cloning this can be removed
+
+        # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
         linux_util.run_as_user(
             "ubuntu",
-            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/magni_robot.git --branch noetic-devel"],
+            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor.git"],
             cwd="/home/ubuntu/catkin_ws/src",
             check=True,
         )
-        # clone the oled display node TODO - when apt update of this is figured out, cloning this can be removed
-        linux_util.run_as_user(
-            "ubuntu",
-            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/oled_display_node.git"],
-            cwd="/home/ubuntu/catkin_ws/src",
-            check=True,
-        )
+
         # compile and source
         linux_util.run_as_user(
             "ubuntu",
-            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make"],
+            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
             cwd="/home/ubuntu/catkin_ws",
             check=True,
         )
+ 
+        # placing robot.yaml into /etc/ubiquity/
+        # default_robot.yaml which gets copied to /etc/ubiquity/robot.yaml lives in magni_bringup package.
+        # magni_bringup package gets installed with either apt OR directly compiled in ~/catkin_ws/.
+        # however installed, getting robot.yaml from one of them is handeled here with the ~/catkin_ws having
+        # priority if both cases are true
+        config_catkin_path = "/home/ubuntu/catkin_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
+        config_apt_path = "/opt/ros/noetic/share/magni_bringup/config/default_robot.yaml"
+        # if magni_robot is installed with apt compiled in ~catkin_ws:
+        if os.path.isfile(config_catkin_path):
+            shutil.copy(config_catkin_path, "/etc/ubiquity/robot.yaml")
+        # if magni_robot is installed with apt:
+        elif os.path.isfile(config_apt_path):
+            shutil.copy(config_apt_path, "/etc/ubiquity/robot.yaml")
+        # otherwise bring up warning and exit
+        else:
+            print("Could not find config on paths: " + config_catkin_path + " OR " + config_apt_path)
+            return -1
 
         setup_networking(py_arguments.hostname)
 
@@ -466,11 +477,24 @@ fi
         subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
 
         # Locales, ugly shell to generate all English UTF-8 locales
+        # We may choose to generate more/less locales in the future, but this seems like a good setupfor now
         subprocess.run(
-            "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs -L 1 locale-gen",
+            "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs locale-gen",
             shell=True,
             check=True,
         )
+
+        # SSH Key Regeneration
+        # We want to make sure that SSH keys are unique per host, thats why 
+        # we delete all old keys and enable sshdgenkeys.service which generates
+        # new keys on first boot
+        shutil.copy("/files/sshdgenkeys.service", "/lib/systemd/system/sshdgenkeys.service")
+        os.makedirs("/etc/systemd/system/sshd.service.wants/", exist_ok=True)
+        subprocess.run(["systemctl", "enable", "sshdgenkeys.service"], check=True)
+        # forget all host keys from history to start from a clean slate
+        # keys will be regenerated on first boot
+        subprocess.run(["rm -f /etc/ssh/ssh_host_*key"], shell=True, check=True)
+        subprocess.run(["rm -f /etc/ssh/ssh_host_*.pub"], shell=True, check=True)
 
         # The file is missing on Focal by default, compared to Xenial, so chroot throws weird errors
         # On the Xenial image the file's content is one entry: /usr/lib/arm-linux-gnueabihf/libarmmem.so

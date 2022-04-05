@@ -17,6 +17,10 @@ from datetime import datetime
 import yaml
 from importlib.machinery import SourceFileLoader
 
+# append this path to sys path so the python files from all subdirectories
+# can be found by and python script - needed for sharing common 
+# customizations scripts 
+sys.path.append(os.getcwd())
 
 # global conf file
 conf = dict()
@@ -277,10 +281,11 @@ def main():
         "./device-tree:/device-tree": {},
     }
 
+    # if the rootfs is not already built, trigger for it to be built automatically
     if not os.path.isdir(conf["rootfs"]):
         print("WARNING: Could not find " + conf["rootfs"] + ". Automatically starting the building of rootfs:")
         # we run the rootfs build script with absolute path so it works both on test machines and buildbot.
-        subprocess_run("sudo python3 "+os.getcwd()+"/build_rootfs.py --rootfs " + conf["rootfs"])
+        subprocess_run("sudo python3 "+os.getcwd()+"/build_rootfs.py --rootfs " + conf["rootfs"] + " --hostname " + conf["hostname"])
 
     # warning of the build rootfs date if that is too large
     try:
@@ -293,7 +298,8 @@ def main():
                 print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
 
             # add the image build date
-            d = {"image_build_date": datetime.today().date()}
+            d = {"image_build_date": datetime.today().date(),
+                 "image_name": image}
             d = yaml.dump(d, f)
     except Exception as e:
         print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
@@ -302,7 +308,13 @@ def main():
 
     rootfs_ext = conf["rootfs"] + "-extended"
 
-    # using rsync is faster then cp, since if doing it multiple times on same machine it takes less time
+    # if present delete rootfs_ext (which is the case if images are built multiple times on same machine/instance) 
+    # solving https://github.com/UbiquityRobotics/pi_image2/issues/49
+    if os.path.isdir(rootfs_ext):
+        print("Removing " + rootfs_ext)
+        shutil.rmtree(rootfs_ext)
+
+    # using rsync is faster then cp
     # options used with rsync
     # -a  : all files, with permissions, etc..
     # -x  : stay on one file system
@@ -335,6 +347,14 @@ def main():
             customize_image.execute_customizations()
             print("========== end of external customizations ====================")
 
+        # again compile anything in /home/ubuntu/catkin_ws. This allows that each customization does
+        # not have to compile everything separately which would take longer time 
+        linux_util.run_as_user(
+            "ubuntu",
+            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
+            cwd="/home/ubuntu/catkin_ws",
+            check=True,
+        )
         chroot_cleanup()
     
     # Calculate size of rootfs
