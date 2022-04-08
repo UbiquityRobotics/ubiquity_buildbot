@@ -172,7 +172,7 @@ Here is a detailed overview of the architecture of the pi_image2 files:
 
 4. `customizations/` folder contains customization scripts for making images that do not have their own project repo. (eg. base image, gdm image, ...)
 
-5. `common_img_mods/` folder contains common mods considered to be of use to a wide variety of internal and external images. These mod simply define `install()` python functions that get included and used in the customization scripts. Example of using the common mod for installing gdm3 (desktop environment) can be seen in [customize_gdm3_image.py](customizations/customize_gdm3_image.py). Check out what is inside `common_img_mods/` to see all available mods, and more can be added in the future.
+5. `common_img_mods/` folder contains common mods considered to be of use to a wide variety of internal and external images. These mods simply define `install()` python functions that get included and used in the customization scripts. Example of using the common mod for installing gdm3 (desktop environment) can be seen in [customize_gdm3_image.py](customizations/customize_gdm3_image.py). Check out what is inside `common_img_mods/` to see all available mods, and more can be added in the future.
 
 5. `files/` folder contains config files that are copied over to rootfs to specify some image configurations.
 
