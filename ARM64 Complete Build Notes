@@ -1,4 +1,4 @@
-From ARM64 SERVER Magni Build instructions
+* ARM64 SERVER Magni Build instructions
 
 
 This gets to a working robot, but doesn’t include the ros and magni_base service, neither does it have PiFi.
@@ -25,11 +25,11 @@ will force password change on first login
 
 
 
-****netplan wifi install   from CLI**********
+**netplan wifi install   from CLI**
 
 https://linuxconfig.org/ubuntu-20-04-connect-to-wifi-from-command-line
 
-  follow these instructions. Ubuntu ARM64 uses netplan instead of ifup/ifdown.
+Follow these instructions. Ubuntu ARM64 uses netplan instead of ifup/ifdown.
 
 
 
