@@ -53,6 +53,14 @@ To see other available options run:
 
 In any case, the build will take a while, so you might as well grab a coffee :)
 
+### Tips for devs
+
+ - **Shortening the image build process for debugging.** If the image build process needs to be triggered multiple times and changes are only made to customizations (as is often the case in debugging of external customizations), the process can be made shorter by backing up the base rootfs. This way the base rootfs needs to be downloaded and updated only once, into `rootfs-backup/` and after that the external customizations will be executed on copies of that. If in the external customization python script the parameter rootfs is set as default: `"rootfs": "/image-builds/PiFlavourMaker/focal-build",` This can be done by executing
+
+        sudo python3 build_rootfs.py --rootfs /image-builds/PiFlavourMaker/focal-build-backup
+
+This way the base rootfs will be downloaded into `/image-builds/PiFlavourMaker/focal-build-backup`. After that if `build_image.py` is executed, it will take this and build external customizations on top of it.
+
 
 ### Design choices
 
