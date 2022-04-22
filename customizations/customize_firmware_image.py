@@ -13,7 +13,7 @@ class customizeImage:
 		# "release": release of the generated image. Currently only possible value is "focal".
 		# "imagedir": absolute path on buildbot filesystem where generated image will be saved
 		self.conf = {
-			"hostname": "ubuntu",
+			"hostname": "ubiquityrobot",
 			"rootfs_extra_space_mb": 500,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
 			"flavour": "ubiquity-firmware-load",

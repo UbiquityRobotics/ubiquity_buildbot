@@ -1,3 +1,7 @@
+import subprocess
+import os
+import shutil
+from common_img_mods import gdm3_mod
 class customizeImage:
 	def __init__(self):
 		# there needs to exist a dictionary with name "conf" the following variables:
@@ -7,15 +11,16 @@ class customizeImage:
 		# "flavour": flavour of generated image. The name of generated image will be: ${timestamp}-${flavour}-${release}-raspberry-pi.img
 		# "release": release of the generated image. Currently only possible value is "focal".
 		# "imagedir": absolute path on buildbot filesystem where generated image will be saved
+		# "apt_get_packages":
 		self.conf = {
 			"hostname": "ubiquityrobot",
 			"rootfs_extra_space_mb": 500,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
-			"flavour": "ubiquity-base-testing",
+			"flavour": "ubiquity-gdm3-testing",
 			"release": "focal",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
-				"python2", # we still need py2 installed because firmware updating scripts is not ported to py3 yet
+				"python2",
 				"ros-noetic-raspicam-node",
 				"ros-noetic-pi-sonar",
 				"ros-noetic-ubiquity-motor",
@@ -25,9 +30,11 @@ class customizeImage:
 				"ros-noetic-teleop-twist-keyboard",
 				"ros-noetic-carrot-planner", # Required but not properly installed by magni-robot
 				"cairosvg",  # Required but not properly installed by fiducals
+				"poppler-utils",  # Required but not properly installed by fiducals
+				"gedit"
 			]
 		}
 		
 	def execute_customizations(self):
-		print("Nothing to execute")
+		gdm3_mod.install()
 		return
