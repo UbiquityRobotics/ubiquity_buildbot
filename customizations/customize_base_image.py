@@ -30,7 +30,6 @@ class customizeImage:
 				"ros-noetic-teleop-twist-keyboard",
 				"ros-noetic-carrot-planner", # Required but not properly installed by magni-robot
 				"cairosvg",  # Required but not properly installed by fiducals
-				"poppler-utils",  # Required but not properly installed by fiducals
 			]
 		}
 		

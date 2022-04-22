@@ -13,8 +13,9 @@ import linux_util
 import argparse
 import yaml
 from datetime import datetime
+from importlib.machinery import SourceFileLoader
 
-py_arguments = None
+customize_image = None
 
 # mirror settings
 default_ubuntu_mirror = "http://ports.ubuntu.com/"
@@ -73,28 +74,28 @@ def debootstrap(rootfs, use_local_mirror: bool = True):
     )
 
 
-def ubuntu_apt_sources(use_local_mirror: bool = False):
+def ubuntu_apt_sources(release, use_local_mirror: bool = False):
     ubuntu_mirror = default_ubuntu_mirror
     if use_local_mirror:
         ubuntu_mirror = local_ubuntu_mirror
 
-    sources = f"""deb {ubuntu_mirror} {py_arguments.release} main restricted universe multiverse
-#deb-src {ubuntu_mirror} {py_arguments.release} main restricted universe multiverse
+    sources = f"""deb {ubuntu_mirror} {release} main restricted universe multiverse
+#deb-src {ubuntu_mirror} {release} main restricted universe multiverse
 
-deb {ubuntu_mirror} {py_arguments.release}-updates main restricted universe multiverse
-#deb-src {ubuntu_mirror} {py_arguments.release}-updates main restricted universe multiverse
+deb {ubuntu_mirror} {release}-updates main restricted universe multiverse
+#deb-src {ubuntu_mirror} {release}-updates main restricted universe multiverse
 
-deb {ubuntu_mirror} {py_arguments.release}-security main restricted universe multiverse
-#deb-src {ubuntu_mirror} {py_arguments.release}-security main restricted universe multiverse
+deb {ubuntu_mirror} {release}-security main restricted universe multiverse
+#deb-src {ubuntu_mirror} {release}-security main restricted universe multiverse
 
-deb {ubuntu_mirror} {py_arguments.release}-backports main restricted universe multiverse
-#deb-src {ubuntu_mirror} {py_arguments.release}-backports main restricted universe multiverse"""
+deb {ubuntu_mirror} {release}-backports main restricted universe multiverse
+#deb-src {ubuntu_mirror} {release}-backports main restricted universe multiverse"""
 
     with open("/etc/apt/sources.list", "w+") as f:
         f.write(sources)
 
 
-def ros_apt_sources(use_local_mirror: bool = False):
+def ros_apt_sources(release, use_local_mirror: bool = False):
     shutil.copy(
         "/files/ros-archive-keyring.gpg",
         "/usr/share/keyrings/ros-archive-keyring.gpg",
@@ -104,10 +105,10 @@ def ros_apt_sources(use_local_mirror: bool = False):
     if use_local_mirror:
         ros_mirror = local_ros_mirror
 
-    sources = f"deb {ros_mirror} {py_arguments.release} main"
+    sources = f"deb {ros_mirror} {release} main"
     sources = f"""Types: deb
 URIs:  {ros_mirror} 
-Suites: {py_arguments.release}
+Suites: {release}
 Components: main 
 Signed-By: /usr/share/keyrings/ros-archive-keyring.gpg
     """
@@ -115,7 +116,7 @@ Signed-By: /usr/share/keyrings/ros-archive-keyring.gpg
         f.write(sources)
 
 
-def ubiquity_apt_sources():
+def ubiquity_apt_sources(release):
     shutil.copy(
         "/files/ubiquity-archive-keyring.gpg",
         "/usr/share/keyrings/ubiquity-archive-keyring.gpg",
@@ -123,7 +124,7 @@ def ubiquity_apt_sources():
 
     sources = f"""Types: deb
 URIs:  https://packages.ubiquityrobotics.com/ubuntu/ubiquity-testing 
-Suites: {py_arguments.release}
+Suites: {release}
 Components: main pi
 Signed-By: /usr/share/keyrings/ubiquity-archive-keyring.gpg
     """
@@ -132,9 +133,9 @@ Signed-By: /usr/share/keyrings/ubiquity-archive-keyring.gpg
         f.write(sources)
 
 
-def chroot_cleanup():
-    ubuntu_apt_sources(use_local_mirror=False)
-    ros_apt_sources(use_local_mirror=False)
+def chroot_cleanup(release):
+    ubuntu_apt_sources(release, use_local_mirror=False)
+    ros_apt_sources(release, use_local_mirror=False)
     subprocess.run(["rm", "-f", "/etc/apt/*.save"], check=False)
     subprocess.run(["rm", "-f", "/etc/apt/sources.list.d/*.save"], check=False)
     subprocess.run(["apt-get", "clean"], check=True)
@@ -184,9 +185,389 @@ UseMTU=true
 """
         f.write(network_conf)
 
-def main():
-    global py_arguments
+def common_ubiquity_customizations(release="focal", 
+                                   hostname="ubuntu"):
+    ubuntu_apt_sources(release, use_local_mirror=True) #add ubuntu apt sources
+    apt_update() # update ubuntu apt sources first and sync time
+    ros_apt_sources(release) #add ros apt sources
+    ubiquity_apt_sources(release) #add ubiquity apt sources
+    ssl_update() #update ssl certificates if need be
+    apt_update()
+    apt_upgrade()
 
+    # Do all of the apt installs upfront because it is slightly faster, and allows
+    # us to potentially do something smarter in the future, like extract all the
+    # packages before chrooting like debootstrap does.
+    apt_install_packages(
+        [
+            # Base metapackages for ubuntu
+            "ubuntu-minimal",
+            # "ubuntu-standard",
+            "ubuntu-server",
+            # APT Keys, in a package for easy potential updates
+            "ubiquity-archive-keyring",
+            # Common utilities
+            "vim",
+            "nano",
+            "emacs",
+            "htop",
+            "screen",
+            "tmux",
+            "at",
+            "minicom",
+            "curl",
+            "git",
+            "python3-pip",
+            "chrony",
+            "ethtool",
+            "gnupg",
+            "patch",
+            "pollinate",
+            "software-properties-common",
+            "i2c-tools",
+            "net-tools",
+            "fake-hwclock",
+            "hwclock-sync",
+            "ssl-cert",
+            # Raspberry Pi
+            "libraspberrypi-bin",
+            "libraspberrypi-dev",
+            "libraspberrypi-doc",
+            "libraspberrypi0",
+            "raspberrypi-bootloader",
+            "linux-firmware",
+            "raspi-config",
+            "pigpiod",
+            # Network Access
+            "openssh-server",
+            "libnss-mdns",
+            "avahi-daemon",
+            "pifi",
+            # ROS
+            "ros-noetic-ros-base",
+            "python3-rosdep",
+            # magni common,
+            "ros-noetic-magni-robot", #needed to enable magni-base.service,
+            "ros-noetic-pcl-ros", # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
+        ]
+    )
+
+    # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
+    # TODO: When firmware upgrading migrates to py3, this can be removed
+    install_python2()
+
+    groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
+    for group in groups:
+        subprocess.run(["groupadd", "-f", "--system", group], check=True)
+
+    shutil.copy("/files/adduser.local", "/usr/local/sbin/adduser.local")
+    linux_util.make_executable("/usr/local/sbin/adduser.local")
+
+    # set apt-daily.service to run after boot, not during it. This saves 30s of boot time
+    os.makedirs("/etc/systemd/system/apt-daily.timer.d/", exist_ok=True)
+    shutil.copy("/files/override.conf", "/etc/systemd/system/apt-daily.timer.d/override.conf")
+
+    os.makedirs("/etc/ubiquity", exist_ok=True)
+    with open("/etc/ubiquity/env.sh", "w+") as f:
+        f.write("export ROS_HOSTNAME=$(hostname).local\n")
+        f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
+    with open("/etc/ubiquity/ros_setup.sh", "w+") as f:
+        f.write(". /opt/ros/noetic/setup.sh\n")
+        f.write(
+            "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.sh && test -f $catkin_setup && . $catkin_setup\n"
+        )
+        f.write(". /etc/ubiquity/env.sh\n")
+    with open("/etc/ubiquity/ros_setup.bash", "w+") as f:
+        f.write("source /opt/ros/noetic/setup.bash\n")
+        f.write(
+            "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
+        )
+        f.write("source /etc/ubiquity/env.sh\n")
+
+    # Make modifying the configs available to UI apps, and less of a hassle in general
+    subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
+
+    # Source ROS environment in the default bashrc for new users before creating the ubuntu user
+    with open("/etc/skel/.bashrc", "a") as f:
+        ros_source = "\n"
+        ros_source += "source /etc/ubiquity/ros_setup.bash\n"
+        f.write(ros_source)
+
+    linux_util.create_user("ubuntu", "ubuntu")
+    linux_util.add_user_sudo("ubuntu")
+
+    # Init rosdep
+    subprocess.run(["rosdep", "init"], check=True)
+    subprocess.run(["rosdep", "update"], check=True)
+    linux_util.run_as_user("ubuntu", ["rosdep", "update"])
+
+    # Create catkin_ws
+    os.makedirs("/home/ubuntu/catkin_ws/src")
+    subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/catkin_ws"])
+    linux_util.run_as_user(
+        "ubuntu",
+        ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_init_workspace"],
+        cwd="/home/ubuntu/catkin_ws/src",
+        check=True,
+    )
+
+    # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
+    linux_util.run_as_user(
+        "ubuntu",
+        ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor.git"],
+        cwd="/home/ubuntu/catkin_ws/src",
+        check=True,
+    )
+
+    # compile and source
+    # linux_util.run_as_user(
+    #     "ubuntu",
+    #     ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
+    #     cwd="/home/ubuntu/catkin_ws",
+    #     check=True,
+    # )
+
+    # placing robot.yaml into /etc/ubiquity/
+    # default_robot.yaml which gets copied to /etc/ubiquity/robot.yaml lives in magni_bringup package.
+    # magni_bringup package gets installed with either apt OR directly compiled in ~/catkin_ws/.
+    # however installed, getting robot.yaml from one of them is handeled here with the ~/catkin_ws having
+    # priority if both cases are true
+    config_catkin_path = "/home/ubuntu/catkin_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
+    config_apt_path = "/opt/ros/noetic/share/magni_bringup/config/default_robot.yaml"
+    # if magni_robot is installed with apt compiled in ~catkin_ws:
+    if os.path.isfile(config_catkin_path):
+        shutil.copy(config_catkin_path, "/etc/ubiquity/robot.yaml")
+    # if magni_robot is installed with apt:
+    elif os.path.isfile(config_apt_path):
+        shutil.copy(config_apt_path, "/etc/ubiquity/robot.yaml")
+    # otherwise bring up warning and exit
+    else:
+        print("Could not find config on paths: " + config_catkin_path + " OR " + config_apt_path)
+        return -1
+
+    setup_networking(hostname)
+
+    # Set up fstab
+    with open("/etc/fstab", "w+") as f:
+        fstab = """proc            /proc           proc    defaults          0       0
+/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
+/dev/mmcblk0p1  /boot/          vfat    defaults          0       2
+"""
+        f.write(fstab)
+
+    shutil.copy("/files/config.txt", "/boot/config.txt")
+    with open("/boot/cmdline.txt", "w") as f:
+        cmdline = "dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait quiet splash plymouth.ignore-serial-consoles init=/usr/lib/raspi-config/init_resize.sh"
+        f.write(cmdline)
+
+    # Enable i2c module on boot
+    with open("/etc/modules", "a") as f:
+        f.write("\ni2c-dev\n\n")
+
+    # Enable resizefs
+    shutil.copy("/files/resize2fs_once", "/etc/init.d/resize2fs_once")
+    subprocess.run(["systemctl", "enable", "resize2fs_once"], check=True)
+
+    # These 2 firmware directories are large, and we are never going to use them on a Pi
+    shutil.rmtree("/usr/lib/firmware/netronome")
+    shutil.rmtree("/usr/lib/firmware/amdgpu")
+
+    shutil.copy("/files/pifi.conf", "/etc/pifi/pifi.conf")
+    shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
+
+    # Copy device tree overlay for pifi buttons
+    shutil.copy(
+        "/device-tree/ubiquity-led-buttons.dtbo",
+        "/boot/overlays/ubiquity-led-buttons.dtbo",
+    )
+
+    # Enable pigpio daemon that we use for sonars
+    subprocess.run(["systemctl", "enable", "pigpiod.service"], check=True)
+
+    # Enable systemd-networkd that we use for ethernet
+    subprocess.run(["systemctl", "enable", "systemd-networkd.service"], check=True)
+
+    # Enable auto-starting magni-base
+    shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service")
+    subprocess.run(["systemctl", "enable", "roscore.service"], check=True)
+    shutil.copy("/files/magni-base.sh", "/usr/sbin/magni-base")
+    linux_util.make_executable("/usr/sbin/magni-base")
+    shutil.copy("/files/magni-base.service", "/lib/systemd/system/magni-base.service")
+    subprocess.run(["systemctl", "enable", "magni-base.service"], check=True)
+
+    # Customize Message of The Day that shows up at login
+    # We don't want to link to Ubuntu's help documents (because we are heavily modified)
+    subprocess.run(["chmod", "-x", "/etc/update-motd.d/10-help-text"], check=True)
+    # We don't want to notify about LTS upgrades because running that upgrade usually breaks ROS
+    subprocess.run(["chmod", "-x", "/etc/update-motd.d/91-release-upgrade"], check=True)
+    with open("/etc/update-motd.d/50-ubiquity", "w+") as f:
+        motd = """#!/bin/sh
+echo ""
+echo "Welcome to the Ubiquity Robotics Raspberry Pi Image"
+echo "Learn more: https://learn.ubiquityrobotics.com"
+echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
+echo ""
+echo "Wifi can be managed with pifi (pifi --help for more info)"
+echo ""
+
+# it is known that timeout for rtc causes large boot delays. This usually happens if MCB is not connected
+# if the error message is detected prompt the user to disable the hwclock-sync.service
+# see bigger discussion about this in https://github.com/UbiquityRobotics/pi_image2/issues/33
+if dmesg | grep -q "Timed out waiting for device /dev/rtc" >> /dev/null; then
+echo "WARNING:"
+echo "Detected message:"
+dmesg | grep "Timed out waiting for device /dev/rtc"
+echo "Waiting for non-existent /dev/rtc can cause large boot delays."
+echo "Disable waiting for rtc with sudo systemctl disable hwclock-sync.service"
+echo ""
+fi
+
+# if rtc device is found but rtc sync is not enabled, prompt the user to enable it.
+if hwclock --show > /dev/null 2>&1; then
+if systemctl is-active hwclock-sync.service |  grep -q "inactive"; then
+echo "WARNING:"
+echo "Hardware RTC detected but hwclock-sync.service is not enabled."
+echo "Enable it with sudo systemctl enable hwclock-sync.service"
+echo ""
+fi
+fi
+"""
+        f.write(motd)
+    subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
+
+    # Locales, ugly shell to generate all English UTF-8 locales
+    # We may choose to generate more/less locales in the future, but this seems like a good setupfor now
+    subprocess.run(
+        "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs locale-gen",
+        shell=True,
+        check=True,
+    )
+
+    # SSH Key Regeneration
+    # We want to make sure that SSH keys are unique per host, thats why 
+    # we delete all old keys and enable sshdgenkeys.service which generates
+    # new keys on first boot
+    shutil.copy("/files/sshdgenkeys.service", "/lib/systemd/system/sshdgenkeys.service")
+    os.makedirs("/etc/systemd/system/sshd.service.wants/", exist_ok=True)
+    subprocess.run(["systemctl", "enable", "sshdgenkeys.service"], check=True)
+    # forget all host keys from history to start from a clean slate
+    # keys will be regenerated on first boot
+    subprocess.run(["rm -f /etc/ssh/ssh_host_*key"], shell=True, check=True)
+    subprocess.run(["rm -f /etc/ssh/ssh_host_*.pub"], shell=True, check=True)
+
+    # The file is missing on Focal by default, compared to Xenial, so chroot throws weird errors
+    # On the Xenial image the file's content is one entry: /usr/lib/arm-linux-gnueabihf/libarmmem.so
+    # It's unclear what it does, if it should be added here as well or not, but leaving the file empty seems to be enough to clear up chroot errors
+    subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
+
+
+def build_rootfs_fromparams(rootfs="/image-builds/PiFlavourMaker/focal-build",
+                            release="focal", 
+                            hostname="ubuntu",
+                            git_token=""):
+    print("=========================================")
+    print("Output rootfs: " + str(rootfs))
+    print("Release: " + str(release))
+    print("Hostname: " + str(hostname))
+    print("=========================================")
+
+    # always delete rootfs if already exists on path
+    if os.path.isdir(rootfs):
+        print("Found an old rootfs at "+rootfs+". Deleting it.")
+        shutil.rmtree(rootfs)
+    
+    # if there is a backup minimal rootfs, copy it on the current rootfs path
+    restored_from_backup = False
+    if os.path.isdir(rootfs+"-backup"):
+        print("Found a backup at "+rootfs+"-backup, copying it over to use it.")
+        subprocess.run("sudo rsync -axHAX --delete "+ rootfs+"-backup/" + " " + rootfs+"/", check=True, shell=True)
+        restored_from_backup=True
+    # otherwise debootstrap fresh rootfs and copy it to backup folder as well
+    else:
+        debootstrap(rootfs)
+
+    # define chroot mountpoints
+    chroot_mountpoints = {
+        "/dev": {"recursive": True},
+        "/proc:/proc": {},
+        "/sys:/sys": {},
+        "/dev/shm:/dev/shm": {},
+        "/etc/resolv.conf": {},
+        "./files:/files": {},
+        "./device-tree:/device-tree": {},
+    }
+
+    with Chroot(rootfs, mountpoints=chroot_mountpoints):
+        apt_update()
+        
+        # we assume thtat the backup already has common ur customizations
+        # that is why if restored from backup, we simply skip this step again
+        if not restored_from_backup:
+            common_ubiquity_customizations(release,
+                                           hostname)
+
+    
+        # set git token as temporary global variable so external apt packages can easily authenticate 
+        # git actions using command "git clone https://$GIT_TOKEN@github.com/repolik.git"
+        if git_token != "":
+            os.environ["GIT_TOKEN"] = git_token
+
+        # if the customization script path was given, execute customizations
+        if customize_image != None:
+
+            print("========== now installing external apt packages ==============")
+            try:
+                apt_install_packages(customize_image.conf["apt_get_packages"])
+            except Exception as e:
+                print(str(e))
+                exit(0)
+
+            
+            print("========== now running external customizations ===============")
+            customize_image.execute_customizations()
+            print("========== end of external customizations ====================")
+
+            # again compile anything in /home/ubuntu/catkin_ws. This allows that each customization does
+            # not have to compile everything separately which would take longer time 
+            linux_util.run_as_user(
+                "ubuntu",
+                ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
+                cwd="/home/ubuntu/catkin_ws",
+                check=True,
+            )
+
+        chroot_cleanup(release)
+
+    print("Built rootfs at: " + rootfs)
+
+    # writing into rootfs the date of its gerenation
+
+    with open(rootfs+"/home/ubuntu/build_info.yaml", 'w+') as f:
+        d = {"rootfs_build_date": datetime.today().date()}
+        d = yaml.dump(d, f)
+
+def build_rootfs_fromscript(customization_script_path="",
+                            git_token=""):
+    global customize_image
+    # import of customize image script from specified path
+    if customization_script_path != "":
+        try:
+            print("Importing customize image script from "+customization_script_path)
+            ci = SourceFileLoader("customize_image", customization_script_path).load_module()
+            customize_image = ci.customizeImage()
+        except Exception as e:
+            print("Importing of customization script failed.")
+            print(e)
+            return
+    else:
+        sys.exit("Customization script path was not defined. This can be done with --customization_script_path argument. Exiting")
+
+    build_rootfs_fromparams(customize_image.conf["rootfs"],
+                            customize_image.conf["release"],
+                            customize_image.conf["hostname"],
+                            git_token)
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--release",
@@ -203,311 +584,23 @@ def main():
         default="pi-focal",
         help="Network hostname of the generated rootfs",
     )
-
+    parser.add_argument(
+        "--git_token",
+        default="",
+        help="Git token that is going to be temporary set as GIT_TOKEN in chroot session. Users can invoke that to authenticate git actions. Leave empty if not needed",
+    )
+    parser.add_argument(
+        "--customization_script_path",
+        default="",
+        help="Customization script path",
+    )
     py_arguments, unknown = parser.parse_known_args()
 
-    print("=========================================")
-    print("Output rootfs: " + str(py_arguments.rootfs))
-    print("Release: " + str(py_arguments.release))
-    print("Hostname: " + str(py_arguments.hostname))
-    print("=========================================")
-
-    if os.path.isdir(py_arguments.rootfs):
-        shutil.rmtree(py_arguments.rootfs)
-    debootstrap(py_arguments.rootfs)
-
-    # define chroot mountpoints
-    chroot_mountpoints = {
-        "/dev": {"recursive": True},
-        "/proc:/proc": {},
-        "/sys:/sys": {},
-        "/dev/shm:/dev/shm": {},
-        "/etc/resolv.conf": {},
-        "./files:/files": {},
-        "./device-tree:/device-tree": {},
-    }
-
-    with Chroot(py_arguments.rootfs, mountpoints=chroot_mountpoints):
-        ubuntu_apt_sources(use_local_mirror=True) #add ubuntu apt sources
-        apt_update() # update ubuntu apt sources first and sync time
-        ros_apt_sources() #add ros apt sources
-        ubiquity_apt_sources() #add ubiquity apt sources
-        ssl_update() #update ssl certificates if need be
-        apt_update()
-        apt_upgrade()
-        
-        # Do all of the apt installs upfront because it is slightly faster, and allows
-        # us to potentially do something smarter in the future, like extract all the
-        # packages before chrooting like debootstrap does.
-        apt_install_packages(
-            [
-                # Base metapackages for ubuntu
-                "ubuntu-minimal",
-                "ubuntu-standard",
-                # "ubuntu-server",
-                # APT Keys, in a package for easy potential updates
-                "ubiquity-archive-keyring",
-                # Common utilities
-                "vim",
-                "nano",
-                "emacs",
-                "htop",
-                "screen",
-                "tmux",
-                "at",
-                "minicom",
-                "curl",
-                "git",
-                "python3-pip",
-                "chrony",
-                "ethtool",
-                "gnupg",
-                "patch",
-                "pollinate",
-                "software-properties-common",
-                "i2c-tools",
-                "net-tools",
-                "fake-hwclock",
-                "hwclock-sync",
-                "ssl-cert",
-                # Raspberry Pi
-                "libraspberrypi-bin",
-                "libraspberrypi-dev",
-                "libraspberrypi-doc",
-                "libraspberrypi0",
-                "raspberrypi-bootloader",
-                "linux-firmware",
-                "raspi-config",
-                "pigpiod",
-                # Network Access
-                "openssh-server",
-                "libnss-mdns",
-                "avahi-daemon",
-                "pifi",
-                # ROS
-                "ros-noetic-ros-base",
-                "python3-rosdep",
-                # magni common,
-                "ros-noetic-magni-robot", #needed to enable magni-base.service,
-                "ros-noetic-pcl-ros" # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
-            ]
-        )
-
-        # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
-        # TODO: When firmware upgrading migrates to py3, this can be removed
-        install_python2()
-
-        groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
-        for group in groups:
-            subprocess.run(["groupadd", "-f", "--system", group], check=True)
-
-        shutil.copy("/files/adduser.local", "/usr/local/sbin/adduser.local")
-        linux_util.make_executable("/usr/local/sbin/adduser.local")
-
-        # set apt-daily.service to run after boot, not during it. This saves 30s of boot time
-        os.makedirs("/etc/systemd/system/apt-daily.timer.d/", exist_ok=True)
-        shutil.copy("/files/override.conf", "/etc/systemd/system/apt-daily.timer.d/override.conf")
-
-        os.makedirs("/etc/ubiquity", exist_ok=True)
-        with open("/etc/ubiquity/env.sh", "w+") as f:
-            f.write("export ROS_HOSTNAME=$(hostname).local\n")
-            f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
-        with open("/etc/ubiquity/ros_setup.sh", "w+") as f:
-            f.write(". /opt/ros/noetic/setup.sh\n")
-            f.write(
-                "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.sh && test -f $catkin_setup && . $catkin_setup\n"
-            )
-            f.write(". /etc/ubiquity/env.sh\n")
-        with open("/etc/ubiquity/ros_setup.bash", "w+") as f:
-            f.write("source /opt/ros/noetic/setup.bash\n")
-            f.write(
-                "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
-            )
-            f.write("source /etc/ubiquity/env.sh\n")
-
-        # Make modifying the configs available to UI apps, and less of a hassle in general
-        subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
-
-        # Source ROS environment in the default bashrc for new users before creating the ubuntu user
-        with open("/etc/skel/.bashrc", "a") as f:
-            ros_source = "\n"
-            ros_source += "source /etc/ubiquity/ros_setup.bash\n"
-            f.write(ros_source)
-
-        linux_util.create_user("ubuntu", "ubuntu")
-        linux_util.add_user_sudo("ubuntu")
-
-        # Init rosdep
-        subprocess.run(["rosdep", "init"], check=True)
-        subprocess.run(["rosdep", "update"], check=True)
-        linux_util.run_as_user("ubuntu", ["rosdep", "update"])
-
-        # Create catkin_ws
-        os.makedirs("/home/ubuntu/catkin_ws/src")
-        subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/catkin_ws"])
-        linux_util.run_as_user(
-            "ubuntu",
-            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_init_workspace"],
-            cwd="/home/ubuntu/catkin_ws/src",
-            check=True,
-        )
-
-        # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
-        linux_util.run_as_user(
-            "ubuntu",
-            ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor.git"],
-            cwd="/home/ubuntu/catkin_ws/src",
-            check=True,
-        )
-
-        # compile and source
-        linux_util.run_as_user(
-            "ubuntu",
-            ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
-            cwd="/home/ubuntu/catkin_ws",
-            check=True,
-        )
- 
-        # placing robot.yaml into /etc/ubiquity/
-        # default_robot.yaml which gets copied to /etc/ubiquity/robot.yaml lives in magni_bringup package.
-        # magni_bringup package gets installed with either apt OR directly compiled in ~/catkin_ws/.
-        # however installed, getting robot.yaml from one of them is handeled here with the ~/catkin_ws having
-        # priority if both cases are true
-        config_catkin_path = "/home/ubuntu/catkin_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
-        config_apt_path = "/opt/ros/noetic/share/magni_bringup/config/default_robot.yaml"
-        # if magni_robot is installed with apt compiled in ~catkin_ws:
-        if os.path.isfile(config_catkin_path):
-            shutil.copy(config_catkin_path, "/etc/ubiquity/robot.yaml")
-        # if magni_robot is installed with apt:
-        elif os.path.isfile(config_apt_path):
-            shutil.copy(config_apt_path, "/etc/ubiquity/robot.yaml")
-        # otherwise bring up warning and exit
-        else:
-            print("Could not find config on paths: " + config_catkin_path + " OR " + config_apt_path)
-            return -1
-
-        setup_networking(py_arguments.hostname)
-
-        # Set up fstab
-        with open("/etc/fstab", "w+") as f:
-            fstab = """proc            /proc           proc    defaults          0       0
-/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
-/dev/mmcblk0p1  /boot/          vfat    defaults          0       2
-"""
-            f.write(fstab)
-
-        shutil.copy("/files/config.txt", "/boot/config.txt")
-        with open("/boot/cmdline.txt", "w") as f:
-            cmdline = "dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait quiet splash plymouth.ignore-serial-consoles init=/usr/lib/raspi-config/init_resize.sh"
-            f.write(cmdline)
-
-        # Enable i2c module on boot
-        with open("/etc/modules", "a") as f:
-            f.write("\ni2c-dev\n\n")
-
-        # Enable resizefs
-        shutil.copy("/files/resize2fs_once", "/etc/init.d/resize2fs_once")
-        subprocess.run(["systemctl", "enable", "resize2fs_once"], check=True)
-
-        # These 2 firmware directories are large, and we are never going to use them on a Pi
-        shutil.rmtree("/usr/lib/firmware/netronome")
-        shutil.rmtree("/usr/lib/firmware/amdgpu")
-
-        shutil.copy("/files/pifi.conf", "/etc/pifi/pifi.conf")
-        shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
-
-        # Copy device tree overlay for pifi buttons
-        shutil.copy(
-            "/device-tree/ubiquity-led-buttons.dtbo",
-            "/boot/overlays/ubiquity-led-buttons.dtbo",
-        )
-
-        # Enable pigpio daemon that we use for sonars
-        subprocess.run(["systemctl", "enable", "pigpiod.service"], check=True)
-
-        # Enable systemd-networkd that we use for ethernet
-        subprocess.run(["systemctl", "enable", "systemd-networkd.service"], check=True)
-
-        # Enable auto-starting magni-base
-        shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service")
-        subprocess.run(["systemctl", "enable", "roscore.service"], check=True)
-        shutil.copy("/files/magni-base.sh", "/usr/sbin/magni-base")
-        linux_util.make_executable("/usr/sbin/magni-base")
-        shutil.copy("/files/magni-base.service", "/lib/systemd/system/magni-base.service")
-        subprocess.run(["systemctl", "enable", "magni-base.service"], check=True)
-
-        # Customize Message of The Day that shows up at login
-        # We don't want to link to Ubuntu's help documents (because we are heavily modified)
-        subprocess.run(["chmod", "-x", "/etc/update-motd.d/10-help-text"], check=True)
-        # We don't want to notify about LTS upgrades because running that upgrade usually breaks ROS
-        subprocess.run(["chmod", "-x", "/etc/update-motd.d/91-release-upgrade"], check=True)
-        with open("/etc/update-motd.d/50-ubiquity", "w+") as f:
-            motd = """#!/bin/sh
-echo ""
-echo "Welcome to the Ubiquity Robotics Raspberry Pi Image"
-echo "Learn more: https://learn.ubiquityrobotics.com"
-echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
-echo ""
-echo "Wifi can be managed with pifi (pifi --help for more info)"
-echo ""
-
-# it is known that timeout for rtc causes large boot delays. This usually happens if MCB is not connected
-# if the error message is detected prompt the user to disable the hwclock-sync.service
-# see bigger discussion about this in https://github.com/UbiquityRobotics/pi_image2/issues/33
-if dmesg | grep -q "Timed out waiting for device /dev/rtc" >> /dev/null; then
-    echo "WARNING:"
-    echo "Detected message:"
-    dmesg | grep "Timed out waiting for device /dev/rtc"
-    echo "Waiting for non-existent /dev/rtc can cause large boot delays."
-    echo "Disable waiting for rtc with sudo systemctl disable hwclock-sync.service"
-    echo ""
-fi
-
-# if rtc device is found but rtc sync is not enabled, prompt the user to enable it.
-if hwclock --show > /dev/null 2>&1; then
-    if systemctl is-active hwclock-sync.service |  grep -q "inactive"; then
-        echo "WARNING:"
-        echo "Hardware RTC detected but hwclock-sync.service is not enabled."
-        echo "Enable it with sudo systemctl enable hwclock-sync.service"
-        echo ""
-    fi
-fi
-"""
-            f.write(motd)
-        subprocess.run(["chmod", "+x", "/etc/update-motd.d/50-ubiquity"], check=True)
-
-        # Locales, ugly shell to generate all English UTF-8 locales
-        # We may choose to generate more/less locales in the future, but this seems like a good setupfor now
-        subprocess.run(
-            "grep 'en_.*\.UTF-8' /usr/share/i18n/SUPPORTED | awk '{print $1}' | xargs locale-gen",
-            shell=True,
-            check=True,
-        )
-
-        # SSH Key Regeneration
-        # We want to make sure that SSH keys are unique per host, thats why 
-        # we delete all old keys and enable sshdgenkeys.service which generates
-        # new keys on first boot
-        shutil.copy("/files/sshdgenkeys.service", "/lib/systemd/system/sshdgenkeys.service")
-        os.makedirs("/etc/systemd/system/sshd.service.wants/", exist_ok=True)
-        subprocess.run(["systemctl", "enable", "sshdgenkeys.service"], check=True)
-        # forget all host keys from history to start from a clean slate
-        # keys will be regenerated on first boot
-        subprocess.run(["rm -f /etc/ssh/ssh_host_*key"], shell=True, check=True)
-        subprocess.run(["rm -f /etc/ssh/ssh_host_*.pub"], shell=True, check=True)
-
-        # The file is missing on Focal by default, compared to Xenial, so chroot throws weird errors
-        # On the Xenial image the file's content is one entry: /usr/lib/arm-linux-gnueabihf/libarmmem.so
-        # It's unclear what it does, if it should be added here as well or not, but leaving the file empty seems to be enough to clear up chroot errors
-        subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
-
-    print("Built rootfs at: " + py_arguments.rootfs)
-
-    # writing into rootfs the date of its gerenation
-
-    with open(py_arguments.rootfs+"/home/ubuntu/build_info.yaml", 'w+') as f:
-        d = {"rootfs_build_date": datetime.today().date()}
-        d = yaml.dump(d, f)
-
-if __name__ == "__main__":
-    main()
+    if py_arguments.customization_script_path == "":
+        build_rootfs_fromparams(py_arguments.rootfs, 
+                                py_arguments.release, 
+                                py_arguments.hostname, 
+                                py_arguments.git_token)
+    else:
+        build_rootfs_fromscript(py_arguments.customization_script_path,
+                                py_arguments.git_token)

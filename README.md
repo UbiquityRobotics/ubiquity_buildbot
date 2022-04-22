@@ -176,6 +176,14 @@ Here is a detailed overview of the architecture of the pi_image2 files:
 
 5. `files/` folder contains config files that are copied over to rootfs to specify some image configurations.
 
+### Tips for devs
+
+ - **Shortening the image build process for debugging.** If the image build process needs to be triggered multiple times and changes are only made to customizations (as is often the case in debugging of external customizations), the process can be made shorter by backing up the base rootfs. This way the base rootfs needs to be downloaded and updated only once, into `rootfs-backup/` and after that the external customizations will be executed on copies of that. If in the external customization python script the parameter rootfs is set as default: `"rootfs": "/image-builds/PiFlavourMaker/focal-build",` This can be done by executing
+
+        sudo python3 build_rootfs.py --rootfs /image-builds/PiFlavourMaker/focal-build-backup
+
+This way the base rootfs will be downloaded into `/image-builds/PiFlavourMaker/focal-build-backup`. After that if `build_image.py` is executed, it will take this and build external customizations on top of it.
+
 
 ### Design choices
 
