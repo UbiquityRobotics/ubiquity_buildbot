@@ -176,15 +176,24 @@ Here is a detailed overview of the architecture of the pi_image2 files:
 
 5. `files/` folder contains config files that are copied over to rootfs to specify some image configurations.
 
+### Tutorials:
+
+ - [How to create an image with external customization](tutorial_creating_external_customization.md)
+
 ### Tips for devs
 
- - **Shortening the image build process for debugging.** If the image build process needs to be triggered multiple times and changes are only made to customizations (as is often the case in debugging of external customizations), the process can be made shorter by backing up the base rootfs. This way the base rootfs needs to be downloaded and updated only once, into `rootfs-backup/` and after that the external customizations will be executed on copies of that. If in the external customization python script the parameter rootfs is set as default: `"rootfs": "/image-builds/PiFlavourMaker/focal-build",` This can be done by executing
+ - **Shortening the image build process for debugging by a backup.** If the image build process needs to be triggered multiple times and changes are only made to customizations (as is often the case in debugging of external customizations), the process can be made shorter by backing up the base rootfs. This way the base rootfs needs to be downloaded and updated only once, into `rootfs-backup/` and after that the external customizations will be executed on copies of that. If in the external customization python script the parameter rootfs is set as default: `"rootfs": "/image-builds/PiFlavourMaker/focal-build",` This can be done by executing
 
         sudo python3 build_rootfs.py --rootfs /image-builds/PiFlavourMaker/focal-build-backup
 
 This way the base rootfs will be downloaded into `/image-builds/PiFlavourMaker/focal-build-backup`. After that if `build_image.py` is executed, it will take this and build external customizations on top of it.
 
+ - **Shortening the debug cycle by skipping building image and/or skipping compression.** 
+  
+        sudo python3 build_image.py --skip_making_image #skips making and compressing image
+        sudo python3 build_image.py --skip_compressing_image #skips compressing image
 
+___
 ### Design choices
 
  - For desktop environment we chose gdm3 because at the time of writing other lighter weight DMs like xubuntu and lubuntu had lots of troubles with Focal: https://github.com/UbiquityRobotics/pi_image2/issues/24#issuecomment-1023287561

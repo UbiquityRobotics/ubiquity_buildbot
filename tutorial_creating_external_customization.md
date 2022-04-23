@@ -4,7 +4,7 @@ In the tutorial we are going to have a specific example named "coolproject" - in
 
 ---
 
-**Before you continue**, here it is assumed that you already know how to make a AWS instance for building the images manually. If not, please first follow the README on https://github.com/UbiquityRobotics/pi_image2
+**Before you continue**, here it is assumed that you already know how to make a AWS instance for building the images manually. If not, please first follow the [README](README.md)
 
 ---
 
@@ -22,19 +22,19 @@ We want to create a RPI image specific for this project using pi_image2 and buil
 
 In project folder we create a folder called `coolproject_image`
 
-    mdkir -p ~/catkin_ws/src/coolproject/coolproject_image
+    mkdir -p ~/catkin_ws/src/coolproject/coolproject_image
 
 Notice here that this is NOT a ROS package, but simply a folder created with `mkdir`. Nonetheless this is going to look like any other ROS package and is going to live among them in the meta package. If your project is not a metapackage, simply place the `coolproject_image` in the root directory of your repo and continue with the tutorial.
 
 ## Creating the image minimal customization script
 
-Now lets create a python script that will hold instructions for making this project specific image:
+Now lets copy/paste a minimal necessary customization script that can be found [here](customizations/customize_base_image.py). In the example, the pi_image2 repo has been cloned to ~/ for clearer example
 
-    nano ~/catkin_ws/src/coolproject/coolproject_image/customize_coolproject_image.py
+    cd ~
+    git clone https://github.com/UbiquityRobotics/pi_image2.git
+    cp ~/pi_image2/customizations/customize_base_image.py ~/catkin_ws/src/coolproject/coolproject_image/customize_coolproject_image.py
 
 Notice here that the `.py` script can be arbitrarily named but it is recommended to keep the naming convention `customize_NAME_image.py` where `NAME` is the name of your project (for consistency).
-
-Now copy/paste the minimal necessary customization script inside that can be found [here](customizations/customize_base_image.py) (this is used for making minimal base images). 
 
 Note that there are some standards in that script:
  - it contains a class named `customizeImage` - this MUST be named exactly like in the example since its invoked from other scripts by that name
@@ -46,6 +46,15 @@ Note that there are some standards in that script:
 
 Now lets say in addition to minimal example (which basically generates the base image) we want the coolproject image to print a welcome message every time someone SSH-s onto it. Additionally we want the package `python3-serial` to be installed and a private repo [ota_update](https://github.com/UbiquityRobotics/ota_update) to be installed and compiled in `~/catkin_ws/src` of the generated image.
 
+
+To get gdm3 installed we use the pre-prepared gdm mod by first including the mod into the script
+
+    from common_img_mods import gdm3_mod
+
+We also need to include subprocess since we will use it 
+
+    import subprocess
+
 To install `python3-serial` we simply add it to `apt_get_packages` so it looks something like
 
     "apt_get_packages": [
@@ -55,20 +64,17 @@ To install `python3-serial` we simply add it to `apt_get_packages` so it looks s
 
 Here the "..." indicates other apt packages that will also get installed. 
 
-To get gdm3 installed we use the pre-prepared gdm mod by first including the mod into the script
-
-    from common_img_mods import gdm3_mod
-
 And then invoking it to actually be applied to the image within `execute_customizations(self)`:
 
     def execute_customizations(self):
         gdm3_mod.install()
 
         echo_welcome_text = 'echo "Welcome to the CoolProject Image!"'
-        subprocess.run("echo '" + beta_text + "' >> /etc/update-motd.d/50-ubiquity", check=True, shell=True)
+        subprocess.run("echo '" + echo_welcome_text + "' >> /etc/update-motd.d/50-ubiquity", check=True, shell=True)
 
         subprocess.run("git clone https://$GIT_TOKEN@github.com/UbiquityRobotics/ota_update", shell= True, check=True, cwd="/home/ubuntu/catkin_ws/src/")
-        
+        return
+
 We also added the welcome text to be echoed into the `/etc/update-motd.d/50-ubiquity` which holds the messages that get printed on every ssh login.
 
 Note that you can clone UbiquityRobotics owned private repos simply by invoking a global environment variable `$GIT_TOKEN` to authenticate git actions. You don't need to add a `catkin_make` command, since it is going to be run in the background after these customizations have all been executed in any case. `shell=True` needs to be there if the given command is one string. `check=True` is very recommended that its present, since this is what enables you too see the output of the command once it will be executed.
@@ -85,18 +91,31 @@ b) We get to know the process that buildbot will be doing later instead of us (a
 1. The image will be built on a new ARM instance of our AWS servers. Open a new AWS instance. (If you don't know how to do that, fist follow https://github.com/UbiquityRobotics/pi_image2 README).
 2. Once we are able to ssh onto the AWS instance, we can sync our local project files onto the aws server
 
-        rsync -avzhe "ssh -i /PATH_TO_PEM/Name.pem" ~/catkin_ws/src/coolproject/coolproject_image ubuntu@3.129.90.191:pi_image2/
+        PEM_PATH=~/path_to_pem_file/Name.pem
+        AWS_IP=3.17.133.191
+        rsync -avzhe "ssh -i $PEM_PATH" ~/catkin_ws/src/coolproject/coolproject_image ubuntu@$AWS_IP:~/
 
-    where `PATH_TO_PEM/Name.pem` is the path local `.pem` file and `3.129.90.191` should be replaced with the randomly generated IP of AWS instance.
+
+    where `~/path_to_pem_file/Name.pem` is the path local `.pem` file and `AWS_IP` should contain the randomly generated IP of AWS instance.
 3. Now we ssh onto aws machine and clone the pi_image2 code
 
-        ssh -i /PATH_TO_PEM/Name.pem ubuntu@3.129.90.191
+        ssh -i $PEM_PATH ubuntu@$AWS_IP
         git clone https://github.com/UbiquityRobotics/pi_image2.git
 
 4. We are now ready to trigger building the image on aws instance with 
 
         cd pi_image2/
-        sudo python3 build_image.py --customization_script_path ../coolproject_image/customize_coolproject_image.py --git_token ADD_YOUR_GIT_TOKEN
+        GIT_TOKEN=ghp_8Jfsdf670978sdaASZFD67asdf9 # insert your presonal git token that has access to invoked repos
+        sudo python3 build_image.py --customization_script_path ../coolproject_image/customize_coolproject_image.py --git_token $GIT_TOKEN
 
-    note here how we pointed the build_image.py to the local customization script with `--customization_script_path` flag. Also note that since we are cloning private repos inside our customization script the flag `--git_token` also needs to be added. And don't forget to replace `ADD_YOUR_GIT_TOKEN` with a github token that has access to the UbiquityRobotics repos. 
+    note here how we pointed the build_image.py to the local customization script with `--customization_script_path` flag. Also note that since we are cloning private repos inside our customization script the flag `--git_token` also needs to be added.
+
+Now the image building process should begin and if everything goes alright, you should have generated image. You can rsync it over to your system and test it out.
+
+**Tip:** Making images takes a lot of time and most likely you'll have to run it multiple times in your debugging process. To make the debugging cycle shorter, take a look at [Tips for devs](README.md#tips-for-devs)
+
+___
+
+**Next step** would be adding the image generation with the customizations to the buildbot: TODO
+
 

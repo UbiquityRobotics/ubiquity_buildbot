@@ -500,7 +500,7 @@ def build_rootfs_fromparams(rootfs="/image-builds/PiFlavourMaker/focal-build",
     with Chroot(rootfs, mountpoints=chroot_mountpoints):
         apt_update()
         
-        # we assume thtat the backup already has common ur customizations
+        # we assume that the backup already has common ur customizations
         # that is why if restored from backup, we simply skip this step again
         if not restored_from_backup:
             common_ubiquity_customizations(release,
