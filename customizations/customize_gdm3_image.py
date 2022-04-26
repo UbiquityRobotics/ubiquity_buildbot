@@ -20,7 +20,6 @@ class customizeImage:
 			"release": "focal",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
-				"python2",
 				"ros-noetic-raspicam-node",
 				"ros-noetic-pi-sonar",
 				"ros-noetic-ubiquity-motor",
