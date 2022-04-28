@@ -9,6 +9,7 @@ import argparse
 from datetime import datetime
 from importlib.machinery import SourceFileLoader
 from build_rootfs import build_rootfs_fromscript
+import yaml
 
 # append this path to sys path so the python files from all subdirectories
 # can be found by and python script - needed for sharing common 
@@ -120,7 +121,25 @@ def main():
     except Exception as e:
         print(e)
         sys.exit("Something went wrong with building rootfs")
-        
+
+    # warning of the build rootfs date if that is too large
+    try:
+        # opening the build_info.yaml with r+ so we read, write and prepend new stuff 
+        with open(conf["rootfs"]+"/home/ubuntu/build_info.yaml", "r+") as f:
+            build_info = yaml.safe_load(f)
+            print("root fs build date: "+str(build_info["rootfs_build_date"]))
+            d_days = datetime.today().date()-build_info["rootfs_build_date"]
+            if d_days.days > 7:
+                print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
+
+            # add the image build date
+            d = {"image_build_date": datetime.today().date(),
+                 "image_name": image}
+            d = yaml.dump(d, f)
+    except Exception as e:
+        print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
+        print(e)
+        exit(0)    
 
     # Calculate size of rootfs
     rootfs_size = linux_util.du_mb(conf["rootfs"])
