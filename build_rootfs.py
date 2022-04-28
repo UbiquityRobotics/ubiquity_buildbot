@@ -254,7 +254,7 @@ def common_ubiquity_customizations(release="focal",
     # Needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
     # Installed separately with --no-install-recommends because without it includes too many packages we don't need
     # along with gdm3
-    subprocess.run("apt install -y ros-noetic-pcl-ros --no-install-recommends", shell=True, check=True)  # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
+    subprocess.run("apt install -y ros-noetic-pcl-ros --no-install-recommends", shell=True, check=True)
 
     # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
     # TODO: When firmware upgrading migrates to py3, this can be removed
