@@ -467,7 +467,7 @@ fi
     subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
 
 
-def build_rootfs_fromparams(rootfs="/image-builds/PiFlavourMaker/focal-build",
+def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/focal-build",
                             release="focal", 
                             hostname="ubuntu",
                             git_token=""):
@@ -551,7 +551,7 @@ def build_rootfs_fromparams(rootfs="/image-builds/PiFlavourMaker/focal-build",
         d = {"rootfs_build_date": datetime.today().date()}
         d = yaml.dump(d, f)
 
-def build_rootfs_fromscript(customization_script_path="",
+def build_rootfs_from_script(customization_script_path="",
                             git_token=""):
     global customize_image
     # import of customize image script from specified path
@@ -567,7 +567,7 @@ def build_rootfs_fromscript(customization_script_path="",
     else:
         sys.exit("Customization script path was not defined. This can be done with --customization_script_path argument. Exiting")
 
-    build_rootfs_fromparams(customize_image.conf["rootfs"],
+    build_rootfs_from_params(customize_image.conf["rootfs"],
                             customize_image.conf["release"],
                             customize_image.conf["hostname"],
                             git_token)
@@ -602,10 +602,10 @@ if __name__ == "__main__":
     py_arguments, unknown = parser.parse_known_args()
 
     if py_arguments.customization_script_path == "":
-        build_rootfs_fromparams(py_arguments.rootfs, 
+        build_rootfs_from_params(py_arguments.rootfs, 
                                 py_arguments.release, 
                                 py_arguments.hostname, 
                                 py_arguments.git_token)
     else:
-        build_rootfs_fromscript(py_arguments.customization_script_path,
+        build_rootfs_from_script(py_arguments.customization_script_path,
                                 py_arguments.git_token)

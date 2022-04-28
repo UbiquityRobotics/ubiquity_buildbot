@@ -8,7 +8,7 @@ import image_util
 import argparse
 from datetime import datetime
 from importlib.machinery import SourceFileLoader
-from build_rootfs import build_rootfs_fromscript
+from build_rootfs import build_rootfs_from_script
 import yaml
 
 # append this path to sys path so the python files from all subdirectories
@@ -116,8 +116,8 @@ def main():
 
     # setup rootfs
     try:
-        build_rootfs_fromscript(py_arguments.customization_script_path,
-                                py_arguments.git_token)
+        build_rootfs_from_script(py_arguments.customization_script_path,
+                                 py_arguments.git_token)
     except Exception as e:
         print(e)
         sys.exit("Something went wrong with building rootfs")
