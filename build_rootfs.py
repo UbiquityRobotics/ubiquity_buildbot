@@ -248,9 +248,13 @@ def common_ubiquity_customizations(release="focal",
             "python3-rosdep",
             # magni common,
             "ros-noetic-magni-robot", #needed to enable magni-base.service,
-            "ros-noetic-pcl-ros", # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
-        ]
+        ],
     )
+
+    # Needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
+    # Installed separately with --no-install-recommends because without it includes too many packages we don't need
+    # along with gdm3
+    subprocess.run("apt install -y ros-noetic-pcl-ros --no-install-recommends", shell=True, check=True)  # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
 
     # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
     # TODO: When firmware upgrading migrates to py3, this can be removed
@@ -418,7 +422,8 @@ echo "WARNING:"
 echo "Detected message:"
 dmesg | grep "Timed out waiting for device /dev/rtc"
 echo "Waiting for non-existent /dev/rtc can cause large boot delays."
-echo "Disable waiting for rtc with sudo systemctl disable hwclock-sync.service"
+echo "Disable waiting for rtc with:"
+echo "sudo systemctl disable hwclock-sync.service"
 echo ""
 fi
 
@@ -427,7 +432,8 @@ if hwclock --show > /dev/null 2>&1; then
 if systemctl is-active hwclock-sync.service |  grep -q "inactive"; then
 echo "WARNING:"
 echo "Hardware RTC detected but hwclock-sync.service is not enabled."
-echo "Enable it with sudo systemctl enable hwclock-sync.service"
+echo "Enable it with:"
+echo "sudo systemctl enable hwclock-sync.service"
 echo ""
 fi
 fi
@@ -541,7 +547,6 @@ def build_rootfs_fromparams(rootfs="/image-builds/PiFlavourMaker/focal-build",
     print("Built rootfs at: " + rootfs)
 
     # writing into rootfs the date of its gerenation
-
     with open(rootfs+"/home/ubuntu/build_info.yaml", 'w+') as f:
         d = {"rootfs_build_date": datetime.today().date()}
         d = yaml.dump(d, f)
@@ -581,7 +586,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--hostname",
-        default="pi-focal",
+        default="ubiquityrobot",
         help="Network hostname of the generated rootfs",
     )
     parser.add_argument(
