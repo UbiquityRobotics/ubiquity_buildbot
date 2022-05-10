@@ -45,6 +45,18 @@ def is_conf_valid(conf):
     
     return True
 
+"""
+At the point of making this fix, Ubuntu 20.04 has not updated the 
+firmware it needs for rpi rev 1.5. Thats why we are copiying files manually
+over from raspberrypi firmware repo. To get to know about details:
+https://github.com/UbiquityRobotics/pi_image2/issues/56#issuecomment-1115791566
+This should be removed once Ubuntu adds its own rpi rev 1.5 fixes
+"""
+def apply_rpi_rev_15_fix():
+    file_path = os.path.dirname(os.path.realpath(__file__))
+    print("Applying rev 1.5 fix for raspebrry pi")
+    subprocess.run("cp "+file_path+"/files/boot_files/* " + conf["rootfs"]+"/boot/", shell=True, check=True)
+
 def main():
     global conf
 
@@ -140,6 +152,9 @@ def main():
         print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
         print(e)
         exit(0)    
+
+    # apply the fixes for raspberry pi rev 1.5
+    apply_rpi_rev_15_fix()
 
     # Calculate size of rootfs
     rootfs_size = linux_util.du_mb(conf["rootfs"])
