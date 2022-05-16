@@ -8,7 +8,8 @@ import image_util
 import argparse
 from datetime import datetime
 from importlib.machinery import SourceFileLoader
-from build_rootfs import build_rootfs_fromscript
+from build_rootfs import build_rootfs_from_script
+import yaml
 
 # append this path to sys path so the python files from all subdirectories
 # can be found by and python script - needed for sharing common 
@@ -43,6 +44,18 @@ def is_conf_valid(conf):
         return False
     
     return True
+
+"""
+At the point of making this fix, Ubuntu 20.04 has not updated the 
+firmware it needs for rpi rev 1.5. Thats why we are copiying files manually
+over from raspberrypi firmware repo. To get to know about details:
+https://github.com/UbiquityRobotics/pi_image2/issues/56#issuecomment-1115791566
+This should be removed once Ubuntu adds its own rpi rev 1.5 fixes
+"""
+def apply_rpi_rev_15_fix():
+    file_path = os.path.dirname(os.path.realpath(__file__))
+    print("Applying rev 1.5 fix for raspebrry pi")
+    subprocess.run("cp "+file_path+"/files/boot_files/* " + conf["rootfs"]+"/boot/", shell=True, check=True)
 
 def main():
     global conf
@@ -115,12 +128,33 @@ def main():
 
     # setup rootfs
     try:
-        build_rootfs_fromscript(py_arguments.customization_script_path,
-                                py_arguments.git_token)
+        build_rootfs_from_script(py_arguments.customization_script_path,
+                                 py_arguments.git_token)
     except Exception as e:
         print(e)
         sys.exit("Something went wrong with building rootfs")
-        
+
+    # warning of the build rootfs date if that is too large
+    try:
+        # opening the build_info.yaml with r+ so we read, write and prepend new stuff 
+        with open(conf["rootfs"]+"/home/ubuntu/build_info.yaml", "r+") as f:
+            build_info = yaml.safe_load(f)
+            print("root fs build date: "+str(build_info["rootfs_build_date"]))
+            d_days = datetime.today().date()-build_info["rootfs_build_date"]
+            if d_days.days > 7:
+                print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
+
+            # add the image build date
+            d = {"image_build_date": datetime.today().date(),
+                 "image_name": image}
+            d = yaml.dump(d, f)
+    except Exception as e:
+        print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
+        print(e)
+        exit(0)    
+
+    # apply the fixes for raspberry pi rev 1.5
+    apply_rpi_rev_15_fix()
 
     # Calculate size of rootfs
     rootfs_size = linux_util.du_mb(conf["rootfs"])

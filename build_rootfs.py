@@ -248,9 +248,14 @@ def common_ubiquity_customizations(release="focal",
             "python3-rosdep",
             # magni common,
             "ros-noetic-magni-robot", #needed to enable magni-base.service,
-            "ros-noetic-pcl-ros", # needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
-        ]
+            "bash-completion", # fixes autocompleteon problems
+        ],
     )
+
+    # Needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
+    # Installed separately with --no-install-recommends because without it includes too many packages we don't need
+    # along with gdm3
+    subprocess.run("apt install -y ros-noetic-pcl-ros --no-install-recommends", shell=True, check=True)
 
     # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
     # TODO: When firmware upgrading migrates to py3, this can be removed
@@ -418,7 +423,8 @@ echo "WARNING:"
 echo "Detected message:"
 dmesg | grep "Timed out waiting for device /dev/rtc"
 echo "Waiting for non-existent /dev/rtc can cause large boot delays."
-echo "Disable waiting for rtc with sudo systemctl disable hwclock-sync.service"
+echo "Disable waiting for rtc with:"
+echo "sudo systemctl disable hwclock-sync.service"
 echo ""
 fi
 
@@ -427,7 +433,8 @@ if hwclock --show > /dev/null 2>&1; then
 if systemctl is-active hwclock-sync.service |  grep -q "inactive"; then
 echo "WARNING:"
 echo "Hardware RTC detected but hwclock-sync.service is not enabled."
-echo "Enable it with sudo systemctl enable hwclock-sync.service"
+echo "Enable it with:"
+echo "sudo systemctl enable hwclock-sync.service"
 echo ""
 fi
 fi
@@ -461,7 +468,7 @@ fi
     subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
 
 
-def build_rootfs_fromparams(rootfs="/image-builds/PiFlavourMaker/focal-build",
+def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/focal-build",
                             release="focal", 
                             hostname="ubuntu",
                             git_token=""):
@@ -541,12 +548,11 @@ def build_rootfs_fromparams(rootfs="/image-builds/PiFlavourMaker/focal-build",
     print("Built rootfs at: " + rootfs)
 
     # writing into rootfs the date of its gerenation
-
     with open(rootfs+"/home/ubuntu/build_info.yaml", 'w+') as f:
         d = {"rootfs_build_date": datetime.today().date()}
         d = yaml.dump(d, f)
 
-def build_rootfs_fromscript(customization_script_path="",
+def build_rootfs_from_script(customization_script_path="",
                             git_token=""):
     global customize_image
     # import of customize image script from specified path
@@ -562,7 +568,7 @@ def build_rootfs_fromscript(customization_script_path="",
     else:
         sys.exit("Customization script path was not defined. This can be done with --customization_script_path argument. Exiting")
 
-    build_rootfs_fromparams(customize_image.conf["rootfs"],
+    build_rootfs_from_params(customize_image.conf["rootfs"],
                             customize_image.conf["release"],
                             customize_image.conf["hostname"],
                             git_token)
@@ -581,7 +587,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--hostname",
-        default="pi-focal",
+        default="ubiquityrobot",
         help="Network hostname of the generated rootfs",
     )
     parser.add_argument(
@@ -597,10 +603,10 @@ if __name__ == "__main__":
     py_arguments, unknown = parser.parse_known_args()
 
     if py_arguments.customization_script_path == "":
-        build_rootfs_fromparams(py_arguments.rootfs, 
+        build_rootfs_from_params(py_arguments.rootfs, 
                                 py_arguments.release, 
                                 py_arguments.hostname, 
                                 py_arguments.git_token)
     else:
-        build_rootfs_fromscript(py_arguments.customization_script_path,
+        build_rootfs_from_script(py_arguments.customization_script_path,
                                 py_arguments.git_token)
