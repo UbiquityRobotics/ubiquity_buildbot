@@ -248,6 +248,7 @@ def common_ubiquity_customizations(release="focal",
             "python3-rosdep",
             # magni common,
             "ros-noetic-magni-robot", #needed to enable magni-base.service,
+            "bash-completion", # fixes autocompleteon problems
         ],
     )
 
