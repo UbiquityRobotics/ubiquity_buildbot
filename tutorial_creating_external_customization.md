@@ -110,7 +110,7 @@ b) We get to know the process that buildbot will be doing later instead of us (a
 4. We are now ready to trigger building the image on aws instance with 
 
         cd pi_image2/
-        GIT_TOKEN=ghp_8Jfsdf670978sdaASZFD67asdf9 # insert your presonal git token that has access to invoked repos
+        GIT_TOKEN=ghp_8Jfsdf670978sdaASZFD67asdf9 # insert your personal git token that has access to invoked repos
         sudo python3 build_image.py --customization_script_path ../coolproject_image/customize_coolproject_image.py --git_token $GIT_TOKEN
 
     note here how we pointed the build_image.py to the local customization script with `--customization_script_path` flag. Also note that since we are cloning private repos inside our customization script the flag `--git_token` also needs to be added (otherwise it does not have to be).
