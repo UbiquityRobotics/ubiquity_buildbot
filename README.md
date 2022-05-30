@@ -14,7 +14,15 @@ Usually when you've made changes to the image creation you want to test and/or d
 
 Here is how you configure an AWS instance for building a new image:
 
-https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Admin -> `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
+ - https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Admin
+
+you should now be logged in into the AWS platform. Now make sure yor Region is set to Ohio:
+
+ - upper right corner of aws platform, dropdown menu just left to username -> select `Ohio`
+
+Now launch a new instance
+
+ -  `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
 
 Now open a terminal on your workstation and ssh onto the instance using the `.pem` security file
 
@@ -59,6 +67,15 @@ To see other available options run:
     python3 build_image.py -h
 
 In any case, the build will take a while, so you might as well grab a coffee :)
+
+**Shutting down the instance**
+
+After you've done all the building on the instance and you dont need it any more its necesseary to shut it down (it does not have a automatic shut down timer). To shut it down, simply type 
+
+    sudo poweroff
+
+when you're ssh-ed onto the instance.
+
 
 ### Setting up a build with Buildbot
 Eventually you'd probably want to set up the images to be build through ubiquity buildbot on https://build.ubiquityrobotics.com/ with only a click of a button. This is still a work in progress, but the basic example of how to do that can be found at 
