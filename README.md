@@ -14,25 +14,33 @@ Usually when you've made changes to the image creation you want to test and/or d
 
 Here is how you configure an AWS instance for building a new image:
 
- - https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Admin
+1. Sign into aws console
+   - https://aws.amazon.com -> `Sign In to the Console` -> Login with account given to you by Admin
 
-you should now be logged in into the AWS platform. Now make sure yor Region is set to Ohio:
+2. Make sure your region is set to "Ohio"
 
- - upper right corner of aws platform, dropdown menu just left to username -> select `Ohio`
+    you should now be logged in into the AWS platform. Now make sure yor Region is set to Ohio:
 
-Now launch a new instance
+   - upper right corner of aws platform, dropdown menu just left to username -> select `Ohio`
 
- -  `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
+3. (OPTIONAL) - Create Key-Pair - needed only once per user.
 
-Now open a terminal on your workstation and ssh onto the instance using the `.pem` security file
+    If you don't have a key-pair `.pem` security file for aws server generate and download one for yourself following [AWS instructions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html).
 
-    ssh -i ~/Downloads/John.pem ubuntu@3.129.90.191
+4. Launch a new instance
 
-If you don't have a `.pem` security file for aws server, ask Admin to get you one.
+   -  `EC2` -> Launch instances button dropdown -> `Launch instance from template` -> Source template: `image-build-testing` -> Scholl down to `Key pair name` and from a dropdown select your key-pair -> `Launch Instance` -> `View Launch Templates` -> Copy `Public IPv4` of your instance (if there is more of them listed, usually the latest one is the bottom of list of Type `t4g.micro` ). The IP is going to be something like for example: `3.129.90.191`
 
-You are now able to ssh onto the aws build machine, next is to sync your local `pi_image2` code onto it:
+
+5. SSH onto instance
+
+    Now open a terminal on your workstation and ssh onto the instance using the `.pem` security file
+
+        ssh -i ~/Downloads/John.pem ubuntu@3.129.90.191
 
 **Syncing code onto the AWS machine**
+
+If you are able to ssh onto the aws build instance, you can now sync your local `pi_image2` code onto it:
 
 To sync the code, open a terminal on your workstation and enter:
 
