@@ -23,7 +23,7 @@ if [[ ! -d $log_path ]]; then
   fi
 fi
 
-#rosrun pi_sonar pi_sonar &
+rosrun pi_sonar pi_sonar &
 export DISPLAY=:0
 python3 /home/ubuntu/buzzer_check.py
 
