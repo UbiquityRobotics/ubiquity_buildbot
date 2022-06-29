@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 
-def install():
+def install(disable_sleep_on_idle = False):
 	print("=============== INSTALLING GDM ===============")
 	subprocess.run(["apt-get", "install", "gdm3", "-y"], check=True)
 	print("installing gnome-terminal")
@@ -26,6 +26,10 @@ def install():
 	shutil.copy("files/branding/magni_wallpaper.png", "/usr/share/magni_wallpaper.png")
 	shutil.copy("files/org.gnome.desktop.background.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.background.gschema.xml")
 	# TODO in the future here also plymouth logo can be added
+	
+	# if enabled, disable gdm to sleep screen on idle
+	if disable_sleep_on_idle:
+		shutil.copy("files/org.gnome.desktop.session.gschema.xml", "/usr/share/glib-2.0/schemas/org.gnome.desktop.session.gschema.xml")
 	# schemas must be recompiled after every change
 	subprocess.run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"], check=True)
 		

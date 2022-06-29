@@ -1,0 +1,12 @@
+[Unit]
+Requires=roscore.service
+After=gdm3.service
+
+[Service]
+Type=simple
+User=ubuntu
+Environment=ROS_HOME=/home/ubuntu/.ros
+ExecStart=/usr/sbin/sonarboard-test
+
+[Install]
+WantedBy=multi-user.target
