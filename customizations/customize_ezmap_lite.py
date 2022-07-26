@@ -23,7 +23,7 @@ class customizeImage:
 			"hostname": "ezrobot",
 			"rootfs_extra_space_mb": 2000,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
-			"flavour": "ezmap",
+			"flavour": "ezmap-lite",
 			"release": "focal",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
@@ -38,7 +38,6 @@ class customizeImage:
 				"python3-catkin-tools",
 				"python3-osrf-pycommon",
 				"python3-tk",
-				"ros-noetic-gps-common",
 				"ros-noetic-raspicam-node",
 				"ros-noetic-pi-sonar",
 				"ros-noetic-ubiquity-motor",
@@ -99,10 +98,10 @@ class customizeImage:
 		subprocess.run("git config --global user.password $GIT_TOKEN", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
-		subprocess.run("git clone https://MoffKalast:$GIT_TOKEN@github.com/UbiquityRobotics/ezmap.git", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("git clone https://MoffKalast:$GIT_TOKEN@github.com/UbiquityRobotics/ezmap_lite.git", shell=True, check=True, executable='/bin/bash')
 
-		os.chdir("/home/ubuntu/catkin_ws/src/ezmap")
-		subprocess.run("vcs import < ezmap.repos", shell=True, check=True, executable='/bin/bash')
+		os.chdir("/home/ubuntu/catkin_ws/src/ezmap_lite")
+		subprocess.run("vcs import < ezmap_lite.repos", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws")
 		#subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y", shell=True, check=True, executable='/bin/bash')
@@ -127,22 +126,13 @@ class customizeImage:
 		subprocess.run("chown -R ubuntu /etc/ubiquity/", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("sed --in-place 's/oled_display: {'controller': None}/oled_display: {'controller': SH1106}/g' /etc/ubiquity/robot.yaml", shell=True, check=True, executable='/bin/bash')
 
-		# we have GPS time
-		subprocess.run("systemctl disable hwclock-sync.service", shell=True, check=True, executable='/bin/bash')	
-
 		subprocess.run("""bash -c \"echo '[Match]
 Name=eth*
 
 [Network]
 Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shell=True, check=True, executable='/bin/bash')
 
-
-		subprocess.run("sed --in-place 's/dtparam=i2c_arm=on/#dtparam=i2c_arm=on/g' /boot/config.txt", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("bash -c \"echo \"\" >> /boot/config.txt\"", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("bash -c \"echo \"\" >> /boot/config.txt\"", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("bash -c \"echo 'dtoverlay=i2c-gpio,i2c_gpio_sda=2,i2c_gpio_scl=3,bus=1' >> /boot/config.txt\"", shell=True, check=True, executable='/bin/bash')
-
 		subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
-		subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"])	
+		subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"])
 		
 		return
