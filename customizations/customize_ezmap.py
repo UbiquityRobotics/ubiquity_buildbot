@@ -27,6 +27,7 @@ class customizeImage:
 			"release": "focal",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
+				"zip",
 				"cairosvg",  # Required but not properly installed by fiducals
 				"poppler-utils",  # Required but not properly installed by fiducals
 				"gedit",
@@ -53,7 +54,7 @@ class customizeImage:
 				"ros-noetic-tf-conversions",
 				"ros-noetic-vision-msgs",
 				"ros-noetic-map-server",
-				"ros-noetic-ublox",
+				"ros-noetic-nmea-navsat-driver",
 				"libudev-dev",
 				"ros-noetic-web-video-server",
 				"ros-noetic-laser-filters"
@@ -79,12 +80,10 @@ class customizeImage:
 		subprocess.run("pip3 install pyyaml", shell=True, check=True, executable='/bin/bash')
 
 		# Iris LaMA
-		subprocess.run("mkdir -p /home/ubuntu/iris_lama_ws/src", shell=True, check=True, executable='/bin/bash')
-		os.chdir("/home/ubuntu/iris_lama_ws/src")
-
-		subprocess.run("git clone https://MoffKalast:$GIT_TOKEN@github.com/UbiquityRobotics/iris_ur_lama.git", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("git clone https://MoffKalast:$GIT_TOKEN@github.com/UbiquityRobotics/iris_ur_lama_ros.git", shell=True, check=True, executable='/bin/bash')
-
+		os.chdir("/home/ubuntu/")
+		subprocess.run("wget https://ubiquity-updates.sfo2.digitaloceanspaces.com/iris_lama_ws_001.zip", shell=True, check=True, executable='/bin/bash')		
+		subprocess.run("unzip iris_lama_ws_001.zip", shell=True, check=True, executable='/bin/bash')
+		
 		os.chdir("/home/ubuntu/iris_lama_ws")
 		subprocess.run("rosdep update", shell=True, check=True, executable='/bin/bash')		
 		subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y", shell=True, check=True, executable='/bin/bash')
