@@ -39,6 +39,7 @@ class customizeImage:
 				"python3-catkin-tools",
 				"python3-osrf-pycommon",
 				"python3-tk",
+				"ros-noetic-gps-common",
 				"ros-noetic-raspicam-node",
 				"ros-noetic-pi-sonar",
 				"ros-noetic-ubiquity-motor",
