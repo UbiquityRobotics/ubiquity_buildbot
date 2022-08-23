@@ -63,6 +63,8 @@ class customizeImage:
 	def execute_customizations(self):
 		gdm3_mod.install()
 
+		lama_ver = "002"
+
 		subprocess.run("export DEBIAN_FRONTEND=noninteractive; apt-get -y install iptables-persistent; unset DEBIAN_FRONTEND", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 3000", shell=True, check=True, executable='/bin/bash')
@@ -76,8 +78,9 @@ class customizeImage:
 
 		# Iris LaMA
 		os.chdir("/home/ubuntu/")
-		subprocess.run("wget https://ubiquity-updates.sfo2.digitaloceanspaces.com/iris_lama_ws_001.zip", shell=True, check=True, executable='/bin/bash')		
-		subprocess.run("unzip iris_lama_ws_001.zip", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("wget https://ubiquity-updates.sfo2.digitaloceanspaces.com/iris_lama_ws_"+lama_ver+".zip", shell=True, check=True, executable='/bin/bash')		
+		subprocess.run("unzip iris_lama_ws_"+lama_ver+".zip", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("rm iris_lama_ws_"+lama_ver+".zip", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/iris_lama_ws")
 		subprocess.run("rosdep update", shell=True, check=True, executable='/bin/bash')		
@@ -88,15 +91,18 @@ class customizeImage:
 		# EZ-Map
 		subprocess.run("rm -rf /home/ubuntu/catkin_ws/src/ubiquity_motor", shell=True, check=True, executable='/bin/bash')
 
-		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
+		#subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("git config --global user.name 'MoffKalast'", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("git config --global user.password $GIT_TOKEN", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
-		subprocess.run("git clone https://MoffKalast:$GIT_TOKEN@github.com/UbiquityRobotics/ezmap_pro.git", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("git clone https://github.com/UbiquityRobotics/ezmap_pro.git", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws/src/ezmap_pro")
 		subprocess.run("vcs import < ezmap_pro.repos", shell=True, check=True, executable='/bin/bash')
+
+		subprocess.run("git config --global --unset-all user.name", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("git config --global --unset-all user.password", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws")
 		#subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y", shell=True, check=True, executable='/bin/bash')
