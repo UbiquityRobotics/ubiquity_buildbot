@@ -9,8 +9,15 @@ import os
 # a minimal working example of a customization script. You can copy paste this
 # for use as a starting point for custom projects
 
+NAME = "ezmap-lite"
+NAME = "ezmap-pro"
+NAME = "ezmap"
+
+LAMA_VER = "007"
+
 class customizeImage:
 	def __init__(self):
+
 		# there needs to exist a dictionary with name "conf" the following variables:
 		# "hostname": hostname that the image is going to have setup.
 		# "rootfs_extra_space_mb": how much more space will be allocated in rootfs in generated image.
@@ -23,7 +30,7 @@ class customizeImage:
 			"hostname": "ezrobot",
 			"rootfs_extra_space_mb": 2000,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
-			"flavour": "ezmap",
+			"flavour": NAME,
 			"release": "focal",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
@@ -53,6 +60,7 @@ class customizeImage:
 				"ros-noetic-tf2-web-republisher",
 				"ros-noetic-tf-conversions",
 				"ros-noetic-vision-msgs",
+				"ros-noetic-rviz-visual-tools",
 				"ros-noetic-map-server",
 				"ros-noetic-nmea-navsat-driver",
 				"libudev-dev",
@@ -64,11 +72,7 @@ class customizeImage:
 	def execute_customizations(self):
 		gdm3_mod.install()
 
-		lama_ver = "002"
-
-		#ip tables for 3000 -> 80 port forwarding
-		#subprocess.run("debconf-set-selections <<< \"iptables-persistent iptables-persistent/autosave_v4 boolean true\"")
-		#subprocess.run("debconf-set-selections <<< \"iptables-persistent iptables-persistent/autosave_v4 boolean true\"")
+		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("export DEBIAN_FRONTEND=noninteractive; apt-get -y install iptables-persistent; unset DEBIAN_FRONTEND", shell=True, check=True, executable='/bin/bash')
 
@@ -83,39 +87,52 @@ class customizeImage:
 
 		# Iris LaMA
 		os.chdir("/home/ubuntu/")
-		subprocess.run("wget https://ubiquity-updates.sfo2.digitaloceanspaces.com/iris_lama_ws_"+lama_ver+".zip", shell=True, check=True, executable='/bin/bash')		
-		subprocess.run("unzip iris_lama_ws_"+lama_ver+".zip", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("rm iris_lama_ws_"+lama_ver+".zip", shell=True, check=True, executable='/bin/bash')
-		
-		os.chdir("/home/ubuntu/iris_lama_ws")
-		subprocess.run("rosdep update", shell=True, check=True, executable='/bin/bash')		
-		subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("catkin config --extend /opt/ros/noetic", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("catkin build -j1", shell=True, check=True, executable='/bin/bash')
+		#subprocess.run("mkdir -p /home/ubuntu/iris_lama_ws/src", shell=True, check=True, executable='/bin/bash')
 
-		# EZ-Map
-		subprocess.run("rm -rf /home/ubuntu/catkin_ws/src/ubiquity_motor", shell=True, check=True, executable='/bin/bash')
+		#os.chdir("/home/ubuntu/iris_lama_ws/src")
+		#subprocess.run("git clone https://github.com/UbiquityRobotics/iris_ur_lama.git", shell=True, check=True, executable='/bin/bash')
+		#subprocess.run("git clone https://github.com/UbiquityRobotics/iris_ur_lama_ros.git", shell=True, check=True, executable='/bin/bash')
 
-		#subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("git config --global user.name 'MoffKalast'", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("git config --global user.password $GIT_TOKEN", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("wget https://ubiquity-updates.sfo2.digitaloceanspaces.com/iris_lama_ws_"+LAMA_VER+".zip", shell=True, check=True, executable='/bin/bash')		
+		subprocess.run("unzip iris_lama_ws_"+LAMA_VER+".zip", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("rm iris_lama_ws_"+LAMA_VER+".zip", shell=True, check=True, executable='/bin/bash')
 
-		os.chdir("/home/ubuntu/catkin_ws/src")
-		subprocess.run("git clone https://github.com/UbiquityRobotics/ezmap.git", shell=True, check=True, executable='/bin/bash')
-
-		os.chdir("/home/ubuntu/catkin_ws/src/ezmap")
-		subprocess.run("vcs import < ezmap.repos", shell=True, check=True, executable='/bin/bash')
-
-		subprocess.run("git config --global --unset-all user.name", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("git config --global --unset-all user.password", shell=True, check=True, executable='/bin/bash')
-
-		os.chdir("/home/ubuntu/catkin_ws")
-		#subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y", shell=True, check=True, executable='/bin/bash')
-		#subprocess.run("source /opt/ros/noetic/setup.bash; source /home/ubuntu/iris_lama_ws/devel/setup.bash; catkin_make -j1", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu", shell=True, check=True, executable='/bin/bash')
 
 		linux_util.run_as_user(
 			"ubuntu",
-			["bash", "-c", "source /opt/ros/noetic/setup.bash && source /home/ubuntu/iris_lama_ws/devel/setup.bash && catkin_make -j1"],
+			["bash", "-c", "source /opt/ros/noetic/setup.bash; rosdep update; rosdep install --from-paths src --ignore-src --rosdistro=noetic -y || true"],
+			cwd="/home/ubuntu/iris_lama_ws",
+			check=True,
+		)
+
+		linux_util.run_as_user(
+			"ubuntu",
+			["bash", "-c", "source /opt/ros/noetic/setup.bash; catkin config --extend /opt/ros/noetic; catkin build -j1"],
+			cwd="/home/ubuntu/iris_lama_ws",
+			check=True,
+		)
+
+		# EZ-Map
+		repo = NAME.replace("-","_")
+
+		subprocess.run("rm -rf /home/ubuntu/catkin_ws/src/ubiquity_motor", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("rm /etc/ubiquity/robot.yaml", shell=True, check=True, executable='/bin/bash')
+
+		os.chdir("/home/ubuntu/catkin_ws/src")
+		subprocess.run("git clone https://github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
+
+		os.chdir("/home/ubuntu/catkin_ws/src/"+repo)
+		subprocess.run("vcs import < "+repo+".repos", shell=True, check=True, executable='/bin/bash')
+
+		os.chdir("/home/ubuntu/catkin_ws")
+		subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y  || true", shell=True, check=True, executable='/bin/bash')
+		#subprocess.run("source /opt/ros/noetic/setup.bash; source /home/ubuntu/iris_lama_ws/devel/setup.bash; catkin_make -j1", shell=True, check=True, executable='/bin/bash')
+
+		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu", shell=True, check=True, executable='/bin/bash')
+		linux_util.run_as_user(
+			"ubuntu",
+			["bash", "-c", "source /opt/ros/noetic/setup.bash; source /home/ubuntu/iris_lama_ws/devel/setup.bash; catkin_make -j1"],
 			cwd="/home/ubuntu/catkin_ws",
 			check=True,
 		)
@@ -124,16 +141,10 @@ class customizeImage:
 		subprocess.run("bash -c \"echo '%sudo   ALL=NOPASSWD: /bin/systemctl reboot, /bin/systemctl poweroff' >> /etc/sudoers.d/nopasswd\"", shell=True, check=True, executable='/bin/bash')		
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/iris_lama_ws/devel/setup.bash' >> /etc/ubiquity/ros_setup.bash\"", shell=True, check=True, executable='/bin/bash')	
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/devel/setup.bash' >> /etc/ubiquity/ros_setup.bash\"", shell=True, check=True, executable='/bin/bash')	
-		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/src/ezmap/ezmap_bringup/scripts/ros_log_clean.bash' >> /etc/ubiquity/env.sh\"", shell=True, check=True, executable='/bin/bash')	
+		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/src/"+repo+"/ezmap_bringup/scripts/ros_log_clean.bash' >> /etc/ubiquity/env.sh\"", shell=True, check=True, executable='/bin/bash')	
 
 		subprocess.run("sed --in-place 's/roslaunch --wait -v magni_bringup base.launch/roslaunch --wait -v ezmap_bringup base.launch/g' /usr/sbin/magni-base", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("sed --in-place 's/oled_display: {'controller': None}/oled_display: {'controller': SH1106}/g' /etc/ubiquity/robot.yaml", shell=True, check=True, executable='/bin/bash')
-
 		subprocess.run("chown -R ubuntu /etc/ubiquity/", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("sed --in-place 's/oled_display: {'controller': None}/oled_display: {'controller': SH1106}/g' /etc/ubiquity/robot.yaml", shell=True, check=True, executable='/bin/bash')
-
-		# we have GPS time
-		subprocess.run("systemctl disable hwclock-sync.service", shell=True, check=True, executable='/bin/bash')	
 
 		subprocess.run("""bash -c \"echo '[Match]
 Name=eth*
@@ -141,13 +152,7 @@ Name=eth*
 [Network]
 Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shell=True, check=True, executable='/bin/bash')
 
-
-		subprocess.run("sed --in-place 's/dtparam=i2c_arm=on/#dtparam=i2c_arm=on/g' /boot/config.txt", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("bash -c \"echo \"\" >> /boot/config.txt\"", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("bash -c \"echo \"\" >> /boot/config.txt\"", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("bash -c \"echo 'dtoverlay=i2c-gpio,i2c_gpio_sda=2,i2c_gpio_scl=3,bus=1' >> /boot/config.txt\"", shell=True, check=True, executable='/bin/bash')
-
-		subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
-		subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"])	
+		subprocess.run("chown -R ubuntu:ubuntu /etc/ubiquity", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu", shell=True, check=True, executable='/bin/bash')
 		
 		return
