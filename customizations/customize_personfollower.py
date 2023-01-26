@@ -86,7 +86,14 @@ class customizeImage:
 		subprocess.run("sudo apt-get update", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("sudo apt-get install libedgetpu1-std -y", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("sudo apt-get install python3-pycoral -y", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0", shell=True, check=True, executable='/bin/bash')
+
+		linux_util.run_as_user(
+			"ubuntu",
+			["bash", "-c", "python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0"],
+			cwd="/home/ubuntu/",
+			check=True,
+		)
+
 
 		print("=============== Installing Main Codebase ===============")
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
@@ -118,8 +125,14 @@ class customizeImage:
 		subprocess.run("bash -c \"echo '%sudo   ALL=NOPASSWD: /bin/systemctl reboot, /bin/systemctl poweroff' >> /etc/sudoers.d/nopasswd\"", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/devel/setup.bash' >> /etc/ubiquity/ros_setup.bash\"", shell=True, check=True, executable='/bin/bash')	
 		
-		subprocess.run("sed --in-place 's/# Punch it./# Punch it.\nexport DISPLAY=:0\necho \"x\" >> $check_path/g' /usr/sbin/magni-base", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("sed --in-place 's/roslaunch --wait -v magni_bringup base.launch/roslaunch --wait -v ezmap_bringup base.launch/g' /usr/sbin/magni-base", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("sed --in-place 's/# Punch it./# Punch it.\\nexport DISPLAY=:0\\necho \"x\" >> $check_path/g' /usr/sbin/magni-base", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("sed --in-place 's/roslaunch --wait -v magni_bringup base.launch/roslaunch --wait -v output_selector fusion_follow.launch/g' /usr/sbin/magni-base", shell=True, check=True, executable='/bin/bash')
+
+		subprocess.run("""bash -c \"echo '[Match]
+Name=eth*
+
+[Network]
+Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("chown -R ubuntu:ubuntu /etc/ubiquity", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu", shell=True, check=True, executable='/bin/bash')

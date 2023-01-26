@@ -8,7 +8,7 @@ import image_util
 import argparse
 from datetime import datetime
 from importlib.machinery import SourceFileLoader
-from build_rootfs import build_rootfs_from_script
+from build_rootfs64 import build_rootfs_from_script
 import yaml
 
 # append this path to sys path so the python files from all subdirectories
