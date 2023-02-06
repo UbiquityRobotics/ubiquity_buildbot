@@ -369,6 +369,9 @@ def common_ubiquity_customizations(release="focal",
     with open("/etc/modules", "a") as f:
         f.write("\ni2c-dev\n\n")
 
+    # Enable kernel interfaces
+    shutil.copy("/files/99-gpio.rules", "/etc/udev/rules.d/99-gpio.rules")
+
     # Enable resizefs
     shutil.copy("/files/resize2fs_once", "/etc/init.d/resize2fs_once")
     subprocess.run(["systemctl", "enable", "resize2fs_once"], check=True)
