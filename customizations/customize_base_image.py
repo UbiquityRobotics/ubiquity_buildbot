@@ -1,3 +1,5 @@
+from common_img_mods import ubiquity_ros_packages_mod
+
 # This is a customization script used for generating base images and at the same time
 # a minimal working example of a customization script. You can copy paste this
 # for use as a starting point for custom projects
@@ -16,7 +18,7 @@ class customizeImage:
 			"hostname": "ubiquityrobot",
 			"rootfs_extra_space_mb": 500,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
-			"flavour": "ubiquity-base-testing",
+			"flavour": "ubiquity-base",
 			"release": "focal",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
@@ -33,5 +35,6 @@ class customizeImage:
 		}
 		
 	def execute_customizations(self):
-		print("Nothing to execute")
+		ubiquity_ros_packages_mod.install_packages()
+		ubiquity_ros_packages_mod.compile()
 		return

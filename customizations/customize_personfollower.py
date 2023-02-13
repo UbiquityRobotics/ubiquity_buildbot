@@ -1,6 +1,6 @@
 
 import shutil
-from common_img_mods import gdm3_mod
+from common_img_mods import gdm3_mod, udev
 import subprocess
 import linux_util
 import os
@@ -97,8 +97,6 @@ class customizeImage:
 
 		print("=============== Installing Main Codebase ===============")
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("rm -rf /home/ubuntu/catkin_ws/src/ubiquity_motor", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("rm /etc/ubiquity/robot.yaml", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
 
@@ -119,8 +117,7 @@ class customizeImage:
 		)
 
 		print("=============== Misc File Edits ===============")
-		subprocess.run('echo \"SUBSYSTEM==\\\"tty\\\", ATTRS{idVendor}==\\\"10c4\\\", ATTRS{idProduct}==\\\"ea60\\\", SYMLINK+=\\\"lidar\\\"\" >> /etc/udev/rules.d/50-usb.rules', shell=True, check=True, executable='/bin/bash')
-		subprocess.run('echo \"SUBSYSTEM==\\\"tty\\\", ATTRS{idVendor}==\\\"0403\\\", ATTRS{idProduct}==\\\"6015\\\", SYMLINK+=\\\"beacon\\\"\" >> /etc/udev/rules.d/50-usb.rules', shell=True, check=True, executable='/bin/bash')
+		udev.add_rules()
 
 		subprocess.run("bash -c \"echo '%sudo   ALL=NOPASSWD: /bin/systemctl reboot, /bin/systemctl poweroff' >> /etc/sudoers.d/nopasswd\"", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/devel/setup.bash' >> /etc/ubiquity/ros_setup.bash\"", shell=True, check=True, executable='/bin/bash')	

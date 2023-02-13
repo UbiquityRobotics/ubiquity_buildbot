@@ -1,6 +1,6 @@
 
 import shutil
-from common_img_mods import gdm3_mod
+from common_img_mods import gdm3_mod, udev
 import subprocess
 import linux_util
 import os
@@ -11,7 +11,7 @@ import os
 
 NAME = "ezmap-lite"
 NAME = "ezmap-pro"
-NAME = "ezmap"
+#NAME = "ezmap"
 
 LAMA_VER = "007"
 
@@ -116,9 +116,6 @@ class customizeImage:
 		# EZ-Map
 		repo = NAME.replace("-","_")
 
-		subprocess.run("rm -rf /home/ubuntu/catkin_ws/src/ubiquity_motor", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("rm /etc/ubiquity/robot.yaml", shell=True, check=True, executable='/bin/bash')
-
 		os.chdir("/home/ubuntu/catkin_ws/src")
 		subprocess.run("git clone https://github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
 
@@ -138,6 +135,8 @@ class customizeImage:
 		)
 
 		# File edits
+		udev.add_rules()
+
 		subprocess.run("bash -c \"echo '%sudo   ALL=NOPASSWD: /bin/systemctl reboot, /bin/systemctl poweroff' >> /etc/sudoers.d/nopasswd\"", shell=True, check=True, executable='/bin/bash')		
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/iris_lama_ws/devel/setup.bash' >> /etc/ubiquity/ros_setup.bash\"", shell=True, check=True, executable='/bin/bash')	
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/devel/setup.bash' >> /etc/ubiquity/ros_setup.bash\"", shell=True, check=True, executable='/bin/bash')	

@@ -3,6 +3,8 @@ import subprocess
 import shutil
 import linux_util
 
+from common_img_mods import ubiquity_ros_packages_mod
+
 class customizeImage:
 	def __init__(self):
 		# there needs to exist a dictionary with name "conf" the following variables:
@@ -30,12 +32,14 @@ class customizeImage:
 		}
 		
 	def execute_customizations(self):
+
 		print("Copied /files/production_test.py -> /home/ubuntu/production_test.py")
 		shutil.copy("/files/production_test.py", "/home/ubuntu/production_test.py")
 		linux_util.make_executable("/home/ubuntu/production_test.py")
 		
 		print("Cloning ubiquity_motor")
-		subprocess.run("git clone https://github.com/UbiquityRobotics/ubiquity_motor.git", shell= True, check=True, cwd="/home/ubuntu/catkin_ws/src/")
+		ubiquity_ros_packages_mod.install_packages()
+		ubiquity_ros_packages_mod.compile()
 
 		# TODO copy over the correct firmware file
 		shutil.copy("files/v43_20210829_enc.cyacd", "/home/ubuntu/v43_20210829_enc.cyacd")

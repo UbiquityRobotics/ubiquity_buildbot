@@ -1,7 +1,8 @@
 import subprocess
 import os
 import shutil
-from common_img_mods import gdm3_mod
+from common_img_mods import gdm3_mod, ubiquity_ros_packages_mod
+
 class customizeImage:
 	def __init__(self):
 		# there needs to exist a dictionary with name "conf" the following variables:
@@ -16,7 +17,7 @@ class customizeImage:
 			"hostname": "ubiquityrobot",
 			"rootfs_extra_space_mb": 500,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
-			"flavour": "ubiquity-gdm3-testing",
+			"flavour": "ubiquity-base-gdm3",
 			"release": "focal",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
@@ -36,4 +37,6 @@ class customizeImage:
 		
 	def execute_customizations(self):
 		gdm3_mod.install()
+		ubiquity_ros_packages_mod.install_packages()
+		ubiquity_ros_packages_mod.compile()
 		return

@@ -315,41 +315,7 @@ def common_ubiquity_customizations(release="focal",
         cwd="/home/ubuntu/catkin_ws/src",
         check=True,
     )
-
-    # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
-    linux_util.run_as_user(
-        "ubuntu",
-        ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor.git"],
-        cwd="/home/ubuntu/catkin_ws/src",
-        check=True,
-    )
-
-    # compile and source
-    # linux_util.run_as_user(
-    #     "ubuntu",
-    #     ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
-    #     cwd="/home/ubuntu/catkin_ws",
-    #     check=True,
-    # )
-
-    # placing robot.yaml into /etc/ubiquity/
-    # default_robot.yaml which gets copied to /etc/ubiquity/robot.yaml lives in magni_bringup package.
-    # magni_bringup package gets installed with either apt OR directly compiled in ~/catkin_ws/.
-    # however installed, getting robot.yaml from one of them is handeled here with the ~/catkin_ws having
-    # priority if both cases are true
-    config_catkin_path = "/home/ubuntu/catkin_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
-    config_apt_path = "/opt/ros/noetic/share/magni_bringup/config/default_robot.yaml"
-    # if magni_robot is installed with apt compiled in ~catkin_ws:
-    if os.path.isfile(config_catkin_path):
-        shutil.copy(config_catkin_path, "/etc/ubiquity/robot.yaml")
-    # if magni_robot is installed with apt:
-    elif os.path.isfile(config_apt_path):
-        shutil.copy(config_apt_path, "/etc/ubiquity/robot.yaml")
-    # otherwise bring up warning and exit
-    else:
-        print("Could not find config on paths: " + config_catkin_path + " OR " + config_apt_path)
-        return -1
-
+    
     setup_networking(hostname)
 
     # Set up fstab
@@ -371,6 +337,9 @@ def common_ubiquity_customizations(release="focal",
 
     # Enable kernel interfaces
     shutil.copy("/files/99-gpio.rules", "/etc/udev/rules.d/99-gpio.rules")
+
+    # Remove multipath-tools for uh, speedup reasons
+    subprocess.run(["apt", "remove", "multipath-tools", "-y"], check=True)
 
     # Enable resizefs
     shutil.copy("/files/resize2fs_once", "/etc/init.d/resize2fs_once")

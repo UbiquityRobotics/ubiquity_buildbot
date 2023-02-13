@@ -1,6 +1,6 @@
 
 import shutil
-from common_img_mods import gdm3_mod
+from common_img_mods import gdm3_mod, ubiquity_ros_packages_mod
 import subprocess
 
 # This is a customization script used for generating base images and at the same time
@@ -34,6 +34,8 @@ class customizeImage:
 		
 	def execute_customizations(self):
 		gdm3_mod.install(disable_sleep_on_idle=True)
+		ubiquity_ros_packages_mod.install_packages()
+		ubiquity_ros_packages_mod.compile()
 		
 		# enable pigpiod
 		subprocess.run("systemctl enable pigpiod", shell=True, check=True)

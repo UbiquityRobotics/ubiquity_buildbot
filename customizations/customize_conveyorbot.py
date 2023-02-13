@@ -1,5 +1,5 @@
 import shutil
-from common_img_mods import gdm3_mod
+from common_img_mods import gdm3_mod, udev
 import subprocess
 import linux_util
 import os
@@ -80,10 +80,7 @@ Pin-Priority: 1001
 		subprocess.run('bash -c "echo \'LANG=en_US.UTF-8\' | sudo tee /etc/locale.conf > /dev/null"', shell=True, check=True, executable='/bin/bash')
 		subprocess.run('locale-gen en_US.UTF-8', shell=True, check=True, executable='/bin/bash')
 		
-		# ROS Setup
-		subprocess.run('rm -rf /home/ubuntu/catkin_ws/src/ubiquity_motor', shell=True, check=True, executable='/bin/bash')
-		subprocess.run('rm /etc/ubiquity/robot.yaml', shell=True, check=True, executable='/bin/bash')
-		
+		# ROS Setup		
 		os.chdir('/home/ubuntu/catkin_ws/src')
 		subprocess.run('git clone https://github.com/UbiquityRobotics/breadcrumb.git --branch repos', shell=True, check=True, executable='/bin/bash')
 		
@@ -121,6 +118,8 @@ Pin-Priority: 1001
 			check=True,
 			executable='/bin/bash')
 		
+		#LD Lidar Support
+		udev.add_rules()
 
 		#Autostart Touchscreen
 		subprocess.run('mkdir /home/ubuntu/.config/autostart/', shell=True, check=True, executable='/bin/bash')
