@@ -9,11 +9,11 @@ import os
 # a minimal working example of a customization script. You can copy paste this
 # for use as a starting point for custom projects
 
-NAME = "ezmap-lite"
-NAME = "ezmap-pro"
-#NAME = "ezmap"
+#NAME = "ezmap-lite"
+#NAME = "ezmap-pro"
+NAME = "ezmap"
 
-LAMA_VER = "007"
+LAMA_VER = "008"
 
 class customizeImage:
 	def __init__(self):
@@ -142,7 +142,19 @@ class customizeImage:
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/devel/setup.bash' >> /etc/ubiquity/ros_setup.bash\"", shell=True, check=True, executable='/bin/bash')	
 		subprocess.run("bash -c \"echo 'source /home/ubuntu/catkin_ws/src/"+repo+"/ezmap_bringup/scripts/ros_log_clean.bash' >> /etc/ubiquity/env.sh\"", shell=True, check=True, executable='/bin/bash')	
 
-		subprocess.run("sed --in-place 's/roslaunch --wait -v magni_bringup base.launch/roslaunch --wait -v ezmap_bringup base.launch/g' /usr/sbin/magni-base", shell=True, check=True, executable='/bin/bash')
+		gps_config = '''stty -F /dev/ttyACM0 38400 raw
+		echo -e -n '\\xB5\\x62\\x06\\x08\\x06\\x00\\xC8\\x00\\x01\\x00\\x01\\x00\\xDE\\x6A' >> /dev/ttyACM0
+		source /etc/ubiquity/env.sh'''
+
+		with open("/usr/sbin/magni-base", "r") as f:
+		    content = f.read()
+
+		content = content.replace("source /etc/ubiquity/env.sh", gps_config)
+		content = content.replace("roslaunch --wait -v magni_bringup base.launch", "roslaunch --wait -v ezmap_bringup base.launch")
+
+		with open("/usr/sbin/magni-base", "w") as f:
+		    f.write(content)
+
 		subprocess.run("chown -R ubuntu /etc/ubiquity/", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("""bash -c \"echo '[Match]
