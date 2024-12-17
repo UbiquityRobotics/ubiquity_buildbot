@@ -1,3 +1,7 @@
+
+## Repository Properties
+- **Project Type**: ROS1
+
 Buildbot
 
 ### Deploying Buildbot
