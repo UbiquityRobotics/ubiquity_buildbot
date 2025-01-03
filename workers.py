@@ -8,6 +8,7 @@ import base64
 workers = []
 
 # Legacy ARM Builders
+<<<<<<< HEAD
 workers.append(worker.Worker("hydrogen", creds.hydrogen, max_builds=1))
 workers.append(worker.Worker("helium", creds.helium, max_builds=1))
 workers.append(worker.Worker("lithium", creds.lithium, max_builds=1))
@@ -15,6 +16,15 @@ workers.append(worker.Worker("lithium", creds.lithium, max_builds=1))
 # Legacy Intel Builders
 workers.append(worker.Worker("dasher", creds.dasher))
 workers.append(worker.Worker("dancer", creds.dancer))
+=======
+#workers.append(worker.Worker("hydrogen", creds.hydrogen, max_builds=1))
+#workers.append(worker.Worker("helium", creds.helium, max_builds=1))
+#workers.append(worker.Worker("lithium", creds.lithium, max_builds=1))
+
+# Legacy Intel Builders
+#workers.append(worker.Worker("dasher", creds.dasher))
+#workers.append(worker.Worker("dancer", creds.dancer))
+>>>>>>> test
 
 ## AWS based ARM builders
 cloud_init_script ='''#!/bin/bash
@@ -58,7 +68,11 @@ sudo systemctl start buildbot-worker.service
 boron_cloud_init_script = cloud_init_script.format("boron", creds.boron, "m6g.medium")
 workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium', 
                     region="us-east-2",
+<<<<<<< HEAD
                     ami="ami-031cd6d993a2b9990", 
+=======
+                    ami="ami-08eb4db5a75153599", 
+>>>>>>> test
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
@@ -83,7 +97,11 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
 beryllium_cloud_init_script = cloud_init_script.format("beryllium", creds.beryllium, "m6g.medium")
 workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium', 
                     region="us-east-2",
+<<<<<<< HEAD
                     ami="ami-031cd6d993a2b9990", 
+=======
+                    ami="ami-08eb4db5a75153599", 
+>>>>>>> test
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
@@ -108,7 +126,11 @@ workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium'
 # AWS Intel Builders
 workers.append(worker.EC2LatentWorker("prancer", creds.prancer, 'm5.large',
                     region="us-east-2",
+<<<<<<< HEAD
                     ami="ami-0c0e09bda138fbc12",
+=======
+                    ami="ami-0b4624933067d393a",
+>>>>>>> test
                     identifier=creds.awsPub,
                     secret_identifier=creds.awsPriv,
                     keypair_name='awsBuildbots',
@@ -121,6 +143,7 @@ workers.append(worker.EC2LatentWorker("prancer", creds.prancer, 'm5.large',
 
 
 # AWS Windows Builder for firmware builds
+<<<<<<< HEAD
 workers.append(worker.EC2LatentWorker("tofu", creds.tofu, 't3a.medium',
                     region="us-east-2",
                     ami="ami-0bd35b8c6065abdcb",
@@ -138,6 +161,25 @@ workers.append(worker.EC2LatentWorker("tofu", creds.tofu, 't3a.medium',
 armhf_workers = ["hydrogen", "helium", "lithium", "boron", "beryllium"]
 arm64_workers = ["boron", "beryllium"]
 amd64_workers = ["dasher", "dancer", "prancer"]
+=======
+#workers.append(worker.EC2LatentWorker("tofu", creds.tofu, 't3a.medium',
+#                    region="us-east-2",
+#                    ami="ami-02e57400f716e673e",
+#                    identifier=creds.awsPub,
+#                    secret_identifier=creds.awsPriv,
+#                    spot_instance=True,
+#                    keypair_name='awsBuildbots',
+#                    security_name="awsBuildbots",
+#                    max_spot_price=0.032,
+#                    price_multiplier=None,
+#                    max_builds=1
+#))
+
+
+armhf_workers = ["boron", "beryllium"]
+arm64_workers = ["boron", "beryllium"]
+amd64_workers = ["prancer"]
+>>>>>>> test
 
 
 workers_for_arch = {
