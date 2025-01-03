@@ -37,7 +37,10 @@ server {
     proxy_set_header X-Forwarded-Server  $host;
     proxy_set_header X-Forwarded-Host  $host;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> test
     # you could use / if you use domain based proxy instead of path based proxy
     location / {
         proxy_pass http://127.0.0.1:8010/;
@@ -57,3 +60,7 @@ server {
         proxy_read_timeout 6000s;
     }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> test
