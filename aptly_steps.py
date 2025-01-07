@@ -45,7 +45,7 @@ def closeSession():
         _session.close()
         _session = None
 
-class AptlyUpdatePublishStep(steps.HTTPStep):
+class AptlyUpdatePublishStep(steps.HTTPStepNewStyle):
 
     '''
     PUT an empty dict to /api/publish/ENDPOINT

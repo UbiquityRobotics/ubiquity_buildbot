@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-- hosts: all
-=======
 - hosts: 127.0.0.1
   connection: localt
->>>>>>> test
   handlers:
   - name: restart nginx
     service: name=nginx state=restarted
@@ -20,24 +16,12 @@
     become_user: root
     become_method: sudo
   - name: Load docker_image
-<<<<<<< HEAD
-    docker_image:
-      name: registry.digitalocean.com/ubiquityrobotics/ubiquity_buildbot:latest
-      pull: true
-      force: true
-    become: yes
-    become_user: root
-    become_method: sudo
-  - name: Start the docker_container
-    docker_container:
-=======
     community.docker.docker_image:
       name: registry.digitalocean.com/ubiquityrobotics/ubiquity_buildbot:latest
       source: pull 
       force_source: true
   - name: Start the docker_container
     community.docker.docker_container:
->>>>>>> test
       name: buildbot
       image: registry.digitalocean.com/ubiquityrobotics/ubiquity_buildbot:latest
       volumes:
