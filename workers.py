@@ -21,16 +21,18 @@ cloud_init_script ='''#!/bin/bash
 
 sudo apt update
 sudo apt -y upgrade
-sudo apt -y install debhelper python-setuptools python3-setuptools curl python3-dev python3-venv apt-utils vim htop iotop screen git-buildpackage cowbuilder python3-venv build-essential libssl-dev libffi-dev python-dev ca-certificates qemu-user-static whois
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt -y install debhelper python-setuptools python3-setuptools python3.10-venv curl python3.10-dev python3-venv apt-utils vim htop iotop screen git-buildpackage cowbuilder python3-venv build-essential libssl-dev libffi-dev python-dev ca-certificates qemu-user-static whois
 echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ubuntu
 sudo mkdir -p /var/lib/buildbot
 sudo chown -R ubuntu:ubuntu /var/lib/buildbot
 cd /var/lib/buildbot
 
-sudo apt install -y python3.12-venv
+sudo apt install -y python3.10-venv
 
-python3 -m venv sandbox
+python3.10 -m venv sandbox
 source sandbox/bin/activate
+sudo chown -R ubuntu:ubuntu /var/lib/buildbot/sandbox/
 pip install --upgrade pip
 pip install buildbot-worker[tls]
 pip install pyOpenSSL
@@ -68,12 +70,15 @@ echo "AWS {}" >/var/lib/buildbot/worker/info/host
 
 sudo systemctl enable buildbot-worker.service
 sudo systemctl start buildbot-worker.service
+
+cd /var/lib/buildbot
+source sandbox/bin/activate
 '''
 
 boron_cloud_init_script = cloud_init_script.format("boron", creds.boron, "m6g.medium")
 workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium', 
                     region="us-east-2",
-                    ami="ami-0560690593473ded1", 
+                    ami="ami-039e419d24a37cb82", 
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
                     keypair_name='test', 
@@ -98,7 +103,7 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
 beryllium_cloud_init_script = cloud_init_script.format("beryllium", creds.beryllium, "m6g.medium")
 workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium', 
                     region="us-east-2",
-                    ami="ami-0560690593473ded1", 
+                    ami="ami-039e419d24a37cb82", 
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
                     keypair_name='awsBuildbots', 
