@@ -26,9 +26,9 @@ class customizeImage:
 		# "release": release of the generated image. Currently only possible value is "focal".
 		# "imagedir": absolute path on buildbot filesystem where generated image will be saved (if unsure what this is, leave unchanged)
 		# "apt_get_packages": apt packages that need to be installed onto the image
+		self.git_token = git_token
 		self.conf = {
 			"hostname": "ezrobot",
-			"git_token": git_token,
 			"rootfs_extra_space_mb": 2000,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
 			"flavour": NAME,
