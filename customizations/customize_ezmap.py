@@ -28,7 +28,7 @@ class customizeImage:
 		# "apt_get_packages": apt packages that need to be installed onto the image
 		self.conf = {
 			"hostname": "ezrobot",
-			"git_token" = git_token,
+			"git_token": git_token,
 			"rootfs_extra_space_mb": 2000,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
 			"flavour": NAME,
