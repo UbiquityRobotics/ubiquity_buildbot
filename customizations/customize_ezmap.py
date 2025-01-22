@@ -15,8 +15,8 @@ NAME = "ezmap"
 
 LAMA_VER = "008"
 
-class customizeImage(git_token=None):
-	def __init__(self):
+class customizeImage:
+	def __init__(self, git_token=None):
 
 		# there needs to exist a dictionary with name "conf" the following variables:
 		# "hostname": hostname that the image is going to have setup.
@@ -28,6 +28,7 @@ class customizeImage(git_token=None):
 		# "apt_get_packages": apt packages that need to be installed onto the image
 		self.conf = {
 			"hostname": "ezrobot",
+			"git_token" = git_token,
 			"rootfs_extra_space_mb": 2000,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
 			"flavour": NAME,
