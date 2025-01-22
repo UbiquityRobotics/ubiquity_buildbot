@@ -117,7 +117,7 @@ class customizeImage:
 		repo = NAME.replace("-","_")
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
-		subprocess.run("git clone https://"git_token"@github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("git clone https://"+git_token+"@github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws/src/"+repo)
 		subprocess.run("vcs import < "+repo+".repos", shell=True, check=True, executable='/bin/bash')
