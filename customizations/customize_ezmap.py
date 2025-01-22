@@ -15,7 +15,7 @@ NAME = "ezmap"
 
 LAMA_VER = "008"
 
-class customizeImage:
+class customizeImage(git_token=None):
 	def __init__(self):
 
 		# there needs to exist a dictionary with name "conf" the following variables:
