@@ -87,7 +87,7 @@ def main():
     if py_arguments.customization_script_path != "":
         try:
             ci = SourceFileLoader("customize_image", py_arguments.customization_script_path).load_module()
-            customize_image = ci.customizeImage()
+            customize_image = ci.customizeImage(git_token=py_arguments.git_token)
         except Exception as e:
             print("Importing of customization script failed.")
             print(e)
