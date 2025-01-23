@@ -449,7 +449,7 @@ def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/focal-build",
     print("Release: " + str(release))
     print("Hostname: " + str(hostname))
     print("=========================================")
-    global git_token
+
     # always delete rootfs if already exists on path
     if os.path.isdir(rootfs):
         print("Found an old rootfs at "+rootfs+". Deleting it.")
@@ -527,7 +527,7 @@ def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/focal-build",
 def build_rootfs_from_script(customization_script_path="",
                             git_token=""):
     global customize_image
-    global git_token
+
     # import of customize image script from specified path
     if customization_script_path != "":
         try:
