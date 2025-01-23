@@ -448,6 +448,7 @@ def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/focal-build",
     print("Output rootfs: " + str(rootfs))
     print("Release: " + str(release))
     print("Hostname: " + str(hostname))
+    print("Token: " + str(git_token))
     print("=========================================")
 
     # always delete rootfs if already exists on path
