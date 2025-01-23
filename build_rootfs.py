@@ -532,7 +532,7 @@ def build_rootfs_from_script(customization_script_path="",
         try:
             print("Importing customize image script from "+customization_script_path)
             ci = SourceFileLoader("customize_image", customization_script_path).load_module()
-            customize_image = ci.customizeImage(git_token)
+            customize_image = ci.customizeImage(git_token=git_token)
         except Exception as e:
             print("Importing of customization script failed.")
             print(e)
