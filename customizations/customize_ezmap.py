@@ -122,8 +122,10 @@ class customizeImage:
 
 		env = os.environ.copy()
 		env['GITHUB_TOKEN'] = github_token
+		
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
+		print(f"Token: {os.environ.get('GITHUB_TOKEN', 'Not set')}")
 		subprocess.run("git clone https://"+github_username+":"+github_token+"@github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
 		
 		subprocess.run("git config --global credential.helper store", shell=True, check=True, executable='/bin/bash')
