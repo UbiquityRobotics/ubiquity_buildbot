@@ -129,7 +129,7 @@ class customizeImage:
 		subprocess.run("git config --global credential.helper store", shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir("/home/ubuntu/catkin_ws/src/"+repo)
-		subprocess.run(f"GITHUB_USERNAME={github_username} GITHUB_TOKEN={github_token} vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash')
+		subprocess.run(f"GITHUB_TOKEN={github_token} vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws")
 		subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y  || true", shell=True, check=True, executable='/bin/bash')
