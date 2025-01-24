@@ -120,6 +120,7 @@ class customizeImage:
 		github_username = "Luks24"
 		github_token = self.git_token
 
+		env = os.environ.copy()
 		env['GITHUB_TOKEN'] = github_token
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
