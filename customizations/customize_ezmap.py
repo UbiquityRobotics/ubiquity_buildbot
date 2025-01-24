@@ -119,19 +119,26 @@ class customizeImage:
 
 		github_username = "Luks24"
 		github_token = self.git_token
-
-		env = os.environ.copy()
-		env['GITHUB_TOKEN'] = github_token
 		
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
-		print(f"Token: {os.environ.get('GITHUB_TOKEN', 'Not set')}")
+
+		def modify_repos_file_with_token(repos_file_path, token):
+		    with open(repos_file_path, 'r') as file:
+		        content = file.read()
+		    updated_content = content.replace('${GITHUB_TOKEN}', token)
+		    with open(repos_file_path, 'w') as file:
+		        file.write(updated_content)
+		
+		modify_repos_file_with_token(f"{repo}.repos", self.git_token)
+
+		
 		subprocess.run("git clone https://"+github_username+":"+github_token+"@github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
 		
 		subprocess.run("git config --global credential.helper store", shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir("/home/ubuntu/catkin_ws/src/"+repo)
-		subprocess.run(f"vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash', env=env)
+		subprocess.run(f"vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws")
 		subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y  || true", shell=True, check=True, executable='/bin/bash')
