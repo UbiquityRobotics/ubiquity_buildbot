@@ -120,13 +120,16 @@ class customizeImage:
 		github_username = "Luks24"
 		github_token = self.git_token
 
+		os.environ['GITHUB_USERNAME'] = github_username
+		os.environ['GITHUB_TOKEN'] = github_token
+
 		os.chdir("/home/ubuntu/catkin_ws/src")
 		subprocess.run("git clone https://"+github_username+":"+github_token+"@github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
 		
 		subprocess.run("git config --global credential.helper store", shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir("/home/ubuntu/catkin_ws/src/"+repo)
-		subprocess.run("vcs import < "+repo+".repos --debug", shell=True, check=True, executable='/bin/bash')
+		subprocess.run(f"GITHUB_USERNAME={github_username} GITHUB_TOKEN={github_token} vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws")
 		subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y  || true", shell=True, check=True, executable='/bin/bash')
