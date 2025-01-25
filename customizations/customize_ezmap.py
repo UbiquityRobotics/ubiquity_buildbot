@@ -129,12 +129,10 @@ class customizeImage:
 		    updated_content = content.replace('${GITHUB_TOKEN}', token)
 		    with open(repos_file_path, 'w') as file:
 		        file.write(updated_content)
-		
-		modify_repos_file_with_token(f"{repo}.repos", self.git_token)
 
 		
 		subprocess.run("git clone https://"+github_username+":"+github_token+"@github.com/UbiquityRobotics/"+repo+".git", shell=True, check=True, executable='/bin/bash')
-		
+		modify_repos_file_with_token(f"{repo}.repos", self.git_token)
 		subprocess.run("git config --global credential.helper store", shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir("/home/ubuntu/catkin_ws/src/"+repo)
