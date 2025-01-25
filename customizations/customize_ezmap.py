@@ -147,7 +147,7 @@ class customizeImage:
 		
 		modify_repos_file_with_token(repos_file_path, github_token)
 		
-		subprocess.run(f"vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash', env=env)
+		subprocess.run(f"vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash')
 
 		os.chdir("/home/ubuntu/catkin_ws")
 		subprocess.run("rosdep install --from-paths src --ignore-src --rosdistro=noetic -y  || true", shell=True, check=True, executable='/bin/bash')
