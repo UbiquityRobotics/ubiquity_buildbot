@@ -123,8 +123,16 @@ class customizeImage:
 
 		os.chdir("/home/ubuntu/catkin_ws/src")
 
-		env = os.environ.copy()
-		env['GITHUB_TOKEN'] = self.git_token
+		def modify_repos_file_with_token(repos_file_path, token):
+		    with open(repos_file_path, 'r') as file:
+		        content = file.read()
+		    updated_content = content.replace('${GITHUB_TOKEN}', token)
+		    with open(repos_file_path, 'w') as file:
+		        file.write(updated_content)
+		
+		# Usage
+
+
 
 
 		
@@ -133,6 +141,12 @@ class customizeImage:
 		subprocess.run("git config --global credential.helper store", shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir("/home/ubuntu/catkin_ws/src/"+repo)
+
+		repos_file_path = "ezmap.repos"  # Ensure this path is correct
+		github_token = self.git_token  # Use your actual token
+		
+		modify_repos_file_with_token(repos_file_path, github_token)
+		
 		subprocess.run(f"vcs import < {repo}.repos --debug", shell=True, check=True, executable='/bin/bash', env=env)
 
 		os.chdir("/home/ubuntu/catkin_ws")
