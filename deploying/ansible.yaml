@@ -28,6 +28,7 @@
         - /opt/buildbot/buildwork:/buildwork
         - /opt/buildbot/creds:/creds
         - /etc/letsencrypt/:/certs
+        - /opt/buildbot:/auth
       restart_policy: unless-stopped
       restart: yes
       network_mode: host
