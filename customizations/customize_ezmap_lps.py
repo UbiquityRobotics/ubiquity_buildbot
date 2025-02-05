@@ -32,12 +32,12 @@ class customizeImage:
 				'python3-osrf-pycommon',
 				'python3-tk',
 				'python-xmltodict',
-        'python3-numpy',
-        'python3-scipy',
-        'python3-flask',
-        'python3-shapely',
-        'python3-pil',
-        'python3-pdfkit',
+			        'python3-numpy',
+			        'python3-scipy',
+			        'python3-flask',
+			        'python3-shapely',
+			        'python3-pil',
+			        'python3-pdfkit',
 				'ros-noetic-gps-common',
 				'ros-noetic-raspicam-node',
 				'ros-noetic-pi-sonar',
@@ -97,8 +97,7 @@ Pin-Priority: 1001
 		os.chdir('/home/ubuntu/catkin_ws')
 		subprocess.run('rosdep install --from-paths src --ignore-src --rosdistro=noetic -y || true', shell=True, check=True, executable='/bin/bash')
 		subprocess.run('chown -R ubuntu:ubuntu /home/ubuntu', shell=True, check=True, executable='/bin/bash')
-    subprocess.run('chown -R ubuntu:ubuntu /etc/pifi', shell=True, check=True, executable='/bin/bash')
-		
+    				
 		linux_util.run_as_user('ubuntu',
 			[
 		 'bash', '-c', 'npm install; npm run build'],
@@ -161,16 +160,17 @@ Type=idle\' > /etc/systemd/network/10-eth-dhcp.network\"""", shell=True, check=T
 		subprocess.run('chown -R ubuntu:ubuntu /home/ubuntu', shell=True, check=True, executable='/bin/bash')
 		subprocess.run('chmod 777 /home/ubuntu/.config/autostart/ezmap_touchscreen.desktop', shell=True, check=True, executable='/bin/bash')
 
-    #add channel and band lines to the /etc/pifi/default_ap.em
-    with open("/etc/pifi/default_ap.em", "r") as f:
-      content = f.read()
-
-    content = content.replace("\"ssid\": \"@(hostname)@(mac.replace(\":\", \"\")[-4:])\"", """\"ssid\": \"@(hostname)@(mac.replace(\":\", \"\")[-4:])\",
-            \"channel\": \"1\",
-            \"band\": \"bg\"
-    """)
-
-    with open("/etc/pifi/default_ap.em", "w") as f:
-      f.write(content)
+		#add channel and band lines to the /etc/pifi/default_ap.em
+		subprocess.run('chown -R ubuntu:ubuntu /etc/pifi', shell=True, check=True, executable='/bin/bash')
+		with open("/etc/pifi/default_ap.em", "r") as f:
+			content = f.read()
+		
+		content = content.replace("\"ssid\": \"@(hostname)@(mac.replace(\":\", \"\")[-4:])\"", """\"ssid\": \"@(hostname)@(mac.replace(\":\", \"\")[-4:])\",
+				\"channel\": \"1\",
+				\"band\": \"bg\"
+		""")
+		
+		with open("/etc/pifi/default_ap.em", "w") as f:
+			f.write(content)
 		
 		return
