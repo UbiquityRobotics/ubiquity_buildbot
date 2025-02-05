@@ -80,7 +80,7 @@ Pin-Priority: 1001
 
 		subprocess.run('systemctl enable pigpiod', shell=True, check=True, executable='/bin/bash')
 		subprocess.run('pip3 install pyyaml', shell=True, check=True, executable='/bin/bash')
-    		subprocess.run('pip3 install networkx', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('pip3 install networkx', shell=True, check=True, executable='/bin/bash')
 		
 		subprocess.run('bash -c "echo \'LC_ALL=en_US.UTF-8\' | sudo tee -a /etc/environment > /dev/null"', shell=True, check=True, executable='/bin/bash')
 		subprocess.run('bash -c "echo \'en_US.UTF-8 UTF-8\' | sudo tee -a /etc/locale.gen > /dev/null"', shell=True, check=True, executable='/bin/bash')
