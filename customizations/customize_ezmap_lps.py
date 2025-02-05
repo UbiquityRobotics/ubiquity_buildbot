@@ -100,8 +100,8 @@ Pin-Priority: 1001
 		    updated_content = content.replace('${GITHUB_TOKEN}', token)
 		    with open(repos_file_path, 'w') as file:
 		        file.write(updated_content)
-		
-		subprocess.run('git clone https://github.com/UbiquityRobotics/ezmap_pro.git --branch illuminance_measurement_lps', shell=True, check=True, executable='/bin/bash')
+			    
+		subprocess.run("git clone https://"+github_username+":"+github_token+"@github.com/UbiquityRobotics/ezmap_pro.git --branch illuminance_measurement_lps", shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir('/home/ubuntu/catkin_ws/src/ezmap_pro')
 
