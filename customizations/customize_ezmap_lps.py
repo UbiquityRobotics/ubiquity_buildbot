@@ -5,7 +5,8 @@ import linux_util
 import os
 
 class customizeImage:
-	def __init__(self):
+	def __init__(self, git_token=None):
+		self.git_token = git_token
 
 		self.conf = {
 			"hostname": "ezmap",
@@ -89,9 +90,26 @@ Pin-Priority: 1001
 		
 		# ROS Setup		
 		os.chdir('/home/ubuntu/catkin_ws/src')
+		
+		github_username = "Luks24"
+		github_token = self.git_token
+
+		def modify_repos_file_with_token(repos_file_path, token):
+		    with open(repos_file_path, 'r') as file:
+		        content = file.read()
+		    updated_content = content.replace('${GITHUB_TOKEN}', token)
+		    with open(repos_file_path, 'w') as file:
+		        file.write(updated_content)
+		
 		subprocess.run('git clone https://github.com/UbiquityRobotics/ezmap_pro.git --branch illuminance_measurement_lps', shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir('/home/ubuntu/catkin_ws/src/ezmap_pro')
+
+		repos_file_path = "ezmap_pro.repos"  # Ensure this path is correct
+		github_token = self.git_token  # Use your actual token
+		
+		modify_repos_file_with_token(repos_file_path, github_token)
+		
 		subprocess.run('vcs import < ezmap_pro.repos', shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir('/home/ubuntu/catkin_ws')
