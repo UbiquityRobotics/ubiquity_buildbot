@@ -15,9 +15,9 @@ class customizeImage:
 		self.conf = {
 			"hostname": "ubiquityrobot",
 			"rootfs_extra_space_mb": 500,
-			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
+			"rootfs": "/image-builds/PiFlavourMaker/noble-build",
 			"flavour": "ubiquity-base-ARM64",
-			"release": "focal",
+			"release": "noble",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
 				"ros-noetic-raspicam-node",
