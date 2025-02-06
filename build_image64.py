@@ -39,7 +39,7 @@ def is_conf_valid(conf):
             return False
 
     # currently only possible value for release is "focal"
-    if conf["release"] != "focal":
+    if conf["release"] != "nobel":
         print("'release' is set to "+conf["release"]+". Currently only possible value for release is 'focal'. Please correct this")
         return False
     
