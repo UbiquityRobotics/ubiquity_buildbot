@@ -21,8 +21,8 @@ customize_image = None
 default_ubuntu_mirror = "http://ports.ubuntu.com/"
 local_ubuntu_mirror = "http://us-east-2.ec2.ports.ubuntu.com/ubuntu-ports/"
 # local_ubuntu_mirror = "http://mirrors.mit.edu/ubuntu-ports/"
-default_ros_mirror = "http://packages.ros.org/ros/ubuntu"
-local_ros_mirror = "http://packages.ros.org/ros/ubuntu"
+default_ros_mirror = "http://packages.ros.org/ros2/ubuntu"
+local_ros_mirror = "http://packages.ros.org/ros2/ubuntu"
 
 def apt_update():
     subprocess.run(["apt-get", "update"], check=True)
@@ -124,7 +124,7 @@ def ubiquity_apt_sources(release):
 
     sources = f"""Types: deb
 URIs:  https://packages.ubiquityrobotics.com/ubuntu/ubiquity-testing 
-Suites: {release}
+Suites: focal
 Components: main pi
 Signed-By: /usr/share/keyrings/ubiquity-archive-keyring.gpg
     """
@@ -246,6 +246,12 @@ def common_ubiquity_customizations(release="noble",
             # ROS
             "ros-noetic-ros-base",
             "python3-rosdep",
+            #ROS2
+            "python3-colcon-common-extensions",
+            "ros-jazzy-controller-manager",
+            "ros-jazzy-joint-state-publisher",
+            "ros-jazzy-xacro",
+            "python3-setuptools",
             # magni common,
             "ros-noetic-magni-robot", #needed to enable magni-base.service,
             "bash-completion", # fixes autocompleteon problems
