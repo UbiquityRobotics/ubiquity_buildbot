@@ -244,7 +244,7 @@ def common_ubiquity_customizations(release="noble",
             "avahi-daemon",
             "pifi",
             # ROS
-            "ros-noetic-ros-base",
+            #"ros-noetic-ros-base",
             "python3-rosdep",
             #ROS2
             "python3-colcon-common-extensions",
