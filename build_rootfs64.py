@@ -115,7 +115,7 @@ Signed-By: /usr/share/keyrings/ros-archive-keyring.gpg
     with open("/etc/apt/sources.list.d/ros-latest.sources", "w+") as f:
         f.write(sources)
 
-
+#I don't think we need this at the moment, since we don't have any packages for ros2 available through apt
 def ubiquity_apt_sources(release):
     shutil.copy(
         "/files/ubiquity-archive-keyring.gpg",
@@ -242,9 +242,10 @@ def common_ubiquity_customizations(release="noble",
             "openssh-server",
             "libnss-mdns",
             "avahi-daemon",
-            "pifi",
+            #"pifi", #pifi is not yet working with Ubuntu24 ARM64
             # ROS
             #"ros-noetic-ros-base",
+            "sudo apt install ros-jazzy-ros-base",
             "python3-rosdep",
             #ROS2
             "python3-colcon-common-extensions",
@@ -253,7 +254,8 @@ def common_ubiquity_customizations(release="noble",
             "ros-jazzy-xacro",
             "python3-setuptools",
             # magni common,
-            "ros-noetic-magni-robot", #needed to enable magni-base.service,
+            #ros-noetic-magni-robot is a package, that is currently being built for ros2 and will therfore be inside ros2_ws
+            #"ros-noetic-magni-robot", #needed to enable magni-base.service,
             "bash-completion", # fixes autocompleteon problems
         ],
     )
@@ -261,7 +263,7 @@ def common_ubiquity_customizations(release="noble",
     # Needed for lidars and others, its big but worth including, https://github.com/UbiquityRobotics/pi_image2/issues/40
     # Installed separately with --no-install-recommends because without it includes too many packages we don't need
     # along with gdm3
-    subprocess.run("apt install -y ros-noetic-pcl-ros --no-install-recommends", shell=True, check=True)
+    subprocess.run("apt install -y ros-jazzy-pcl-ros --no-install-recommends", shell=True, check=True)
 
     # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
     # TODO: When firmware upgrading migrates to py3, this can be removed
@@ -283,15 +285,15 @@ def common_ubiquity_customizations(release="noble",
         f.write("export ROS_HOSTNAME=$(hostname).local\n")
         f.write("export ROS_MASTER_URI=http://$(hostname):11311\n")
     with open("/etc/ubiquity/ros_setup.sh", "w+") as f:
-        f.write(". /opt/ros/noetic/setup.sh\n")
+        f.write(". /opt/ros/jazzy/setup.sh\n")
         f.write(
-            "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.sh && test -f $catkin_setup && . $catkin_setup\n"
+            "catkin_setup=/home/ubuntu/ros2_ws/install/setup.sh && test -f $catkin_setup && . $catkin_setup\n"
         )
         f.write(". /etc/ubiquity/env.sh\n")
     with open("/etc/ubiquity/ros_setup.bash", "w+") as f:
-        f.write("source /opt/ros/noetic/setup.bash\n")
+        f.write("source /opt/ros/jazzy/setup.bash\n")
         f.write(
-            "catkin_setup=/home/ubuntu/catkin_ws/devel/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
+            "catkin_setup=/home/ubuntu/ros2_ws/install/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
         )
         f.write("source /etc/ubiquity/env.sh\n")
 
@@ -313,20 +315,28 @@ def common_ubiquity_customizations(release="noble",
     linux_util.run_as_user("ubuntu", ["rosdep", "update"])
 
     # Create catkin_ws
-    os.makedirs("/home/ubuntu/catkin_ws/src")
-    subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/catkin_ws"])
+    os.makedirs("/home/ubuntu/ros2_ws/src")
+    subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/ros2_ws"])
     linux_util.run_as_user(
         "ubuntu",
-        ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_init_workspace"],
-        cwd="/home/ubuntu/catkin_ws/src",
+        ["bash", "-c", "source /opt/ros/jazzy/setup.bash && catkin_init_workspace"],
+        cwd="/home/ubuntu/ros2_ws/src",
         check=True,
     )
 
     # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
     linux_util.run_as_user(
         "ubuntu",
-        ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor.git"],
-        cwd="/home/ubuntu/catkin_ws/src",
+        ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor_ros2"],
+        cwd="/home/ubuntu/ros2_ws/src",
+        check=True,
+    )
+
+    #clone Magni robot jazzy devel bracnh                                   
+    linux_util.run_as_user(
+        "ubuntu",
+        ["bash", "-c", "git clone https://github.com/UbiquityRobotics/magni_robot.git -b jazzy-devel"],
+        cwd="/home/ubuntu/ros2_ws/src",
         check=True,
     )
 
@@ -343,8 +353,8 @@ def common_ubiquity_customizations(release="noble",
     # magni_bringup package gets installed with either apt OR directly compiled in ~/catkin_ws/.
     # however installed, getting robot.yaml from one of them is handeled here with the ~/catkin_ws having
     # priority if both cases are true
-    config_catkin_path = "/home/ubuntu/catkin_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
-    config_apt_path = "/opt/ros/noetic/share/magni_bringup/config/default_robot.yaml"
+    config_catkin_path = "/home/ubuntu/ros2_ws/src/magni_robot/magni_bringup/config/default_robot.yaml"
+    #config_apt_path = "/opt/ros/jazzy/share/magni_bringup/config/default_robot.yaml" #while magni_robot jazzy isnt available as apt, this is not an option
     # if magni_robot is installed with apt compiled in ~catkin_ws:
     if os.path.isfile(config_catkin_path):
         shutil.copy(config_catkin_path, "/etc/ubiquity/robot.yaml")
@@ -353,7 +363,8 @@ def common_ubiquity_customizations(release="noble",
         shutil.copy(config_apt_path, "/etc/ubiquity/robot.yaml")
     # otherwise bring up warning and exit
     else:
-        print("Could not find config on paths: " + config_catkin_path + " OR " + config_apt_path)
+        #print("Could not find config on paths: " + config_catkin_path + " OR " + config_apt_path)
+        print("Could not find config on paths: " + config_catkin_path)
         return -1
 
     setup_networking(hostname)
@@ -383,8 +394,8 @@ def common_ubiquity_customizations(release="noble",
     shutil.rmtree("/usr/lib/firmware/netronome")
     shutil.rmtree("/usr/lib/firmware/amdgpu")
 
-    shutil.copy("/files/pifi.conf", "/etc/pifi/pifi.conf")
-    shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
+    #shutil.copy("/files/pifi.conf", "/etc/pifi/pifi.conf") #until pifi works on ubuntu 24 ARM64 this is not necessary
+    #shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em") #until pifi works on ubuntu 24 ARM64 this is not necessary
 
     # Copy device tree overlay for pifi buttons
     shutil.copy(
@@ -399,8 +410,8 @@ def common_ubiquity_customizations(release="noble",
     subprocess.run(["systemctl", "enable", "systemd-networkd.service"], check=True)
 
     # Enable auto-starting magni-base
-    shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service")
-    subprocess.run(["systemctl", "enable", "roscore.service"], check=True)
+    #shutil.copy("/files/roscore.service", "/etc/systemd/system/roscore.service")
+    #subprocess.run(["systemctl", "enable", "roscore.service"], check=True)
     shutil.copy("/files/magni-base.sh", "/usr/sbin/magni-base")
     linux_util.make_executable("/usr/sbin/magni-base")
     shutil.copy("/files/magni-base.service", "/lib/systemd/system/magni-base.service")
@@ -417,9 +428,9 @@ echo ""
 echo "Welcome to the Ubiquity Robotics Raspberry Pi Image"
 echo "Learn more: https://learn.ubiquityrobotics.com"
 echo "Like our image? Support us on PayPal: tips@ubiquityrobotics.com"
-echo ""
-echo "Wifi can be managed with pifi (pifi --help for more info)"
-echo ""
+# echo ""
+# echo "Wifi can be managed with pifi (pifi --help for more info)"
+# echo ""
 
 # it is known that timeout for rtc causes large boot delays. This usually happens if MCB is not connected
 # if the error message is detected prompt the user to disable the hwclock-sync.service
@@ -544,8 +555,9 @@ def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/noble-build",
             # not have to compile everything separately which would take longer time 
             linux_util.run_as_user(
                 "ubuntu",
-                ["bash", "-c", "source /opt/ros/noetic/setup.bash && catkin_make -j1"],
-                cwd="/home/ubuntu/catkin_ws",
+                #not sure yet if this build will build everything in the ~/ros2_ws/src/
+                ["bash", "-c", "source /opt/ros/jazzy/setup.bash && colcon build --base-paths src/ubiquity_motor_ros2 src/ubiquity_motor_ros2/ubiquity_motor_ros2_msgs --cmake-args --event-handlers console_direct+"],
+                cwd="/home/ubuntu/ros2_ws",
                 check=True,
             )
 
