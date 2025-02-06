@@ -66,7 +66,7 @@ def debootstrap(rootfs, use_local_mirror: bool = True):
             "debootstrap",
             "--verbose",
             "--arch=arm64",
-            "focal",
+            "noble",
             rootfs,
             ubuntu_mirror,
         ],
@@ -185,7 +185,7 @@ UseMTU=true
 """
         f.write(network_conf)
 
-def common_ubiquity_customizations(release="focal", 
+def common_ubiquity_customizations(release="noble", 
                                    hostname="ubuntu"):
     ubuntu_apt_sources(release, use_local_mirror=True) #add ubuntu apt sources
     apt_update() # update ubuntu apt sources first and sync time
@@ -468,8 +468,8 @@ fi
     subprocess.run(["touch", "/etc/ld.so.preload"], check=True)
 
 
-def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/focal-build",
-                            release="focal", 
+def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/noble-build",
+                            release="noble", 
                             hostname="ubuntu",
                             git_token=""):
     print("=========================================")
@@ -577,12 +577,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--release",
-        default="focal",
+        default="noble",
         help="Release",
     )
     parser.add_argument(
         "--rootfs",
-        default="/image-builds/PiFlavourMaker/focal-build",
+        default="/image-builds/PiFlavourMaker/noble-build",
         help="The path of generated rootfs",
     )
     parser.add_argument(
