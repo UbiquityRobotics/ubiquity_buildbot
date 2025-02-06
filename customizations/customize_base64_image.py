@@ -20,15 +20,15 @@ class customizeImage:
 			"release": "noble",
 			"imagedir": "/image-builds/final-images",
 			"apt_get_packages": [
-				"ros-noetic-raspicam-node",
-				"ros-noetic-pi-sonar",
-				"ros-noetic-ubiquity-motor",
-				"ros-noetic-oled-display-node",
-				"ros-noetic-move-basic",
-				"ros-noetic-fiducials",
-				"ros-noetic-teleop-twist-keyboard",
-				"ros-noetic-carrot-planner", # Required but not properly installed by magni-robot
-				"cairosvg",  # Required but not properly installed by fiducals
+				#"ros-noetic-raspicam-node",
+				#"ros-noetic-pi-sonar",
+				#"ros-noetic-ubiquity-motor",
+				#"ros-noetic-oled-display-node",
+				#"ros-noetic-move-basic",
+				#"ros-noetic-fiducials",
+				#"ros-noetic-teleop-twist-keyboard",
+				#"ros-noetic-carrot-planner", # Required but not properly installed by magni-robot
+				#"cairosvg",  # Required but not properly installed by fiducals
 			]
 		}
 		
