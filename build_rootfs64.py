@@ -287,13 +287,13 @@ def common_ubiquity_customizations(release="noble",
     with open("/etc/ubiquity/ros_setup.sh", "w+") as f:
         f.write(". /opt/ros/jazzy/setup.sh\n")
         f.write(
-            "catkin_setup=/home/ubuntu/ros2_ws/install/setup.sh && test -f $catkin_setup && . $catkin_setup\n"
+            "colcon_setup=/home/ubuntu/ros2_ws/install/setup.sh && test -f $colcon_setup && . $colcon_setup\n"
         )
         f.write(". /etc/ubiquity/env.sh\n")
     with open("/etc/ubiquity/ros_setup.bash", "w+") as f:
         f.write("source /opt/ros/jazzy/setup.bash\n")
         f.write(
-            "catkin_setup=/home/ubuntu/ros2_ws/install/setup.bash && test -f $catkin_setup && . $catkin_setup\n"
+            "colcon_setup=/home/ubuntu/ros2_ws/install/setup.bash && test -f $colcon_setup && . $colcon_setup\n"
         )
         f.write("source /etc/ubiquity/env.sh\n")
 
@@ -319,8 +319,8 @@ def common_ubiquity_customizations(release="noble",
     subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/ros2_ws"])
     linux_util.run_as_user(
         "ubuntu",
-        ["bash", "-c", "source /opt/ros/jazzy/setup.bash && catkin_init_workspace"],
-        cwd="/home/ubuntu/ros2_ws/src",
+        ["bash", "-c", "source /opt/ros/jazzy/setup.bash && colcon build"],
+        cwd="/home/ubuntu/ros2_ws",
         check=True,
     )
 
