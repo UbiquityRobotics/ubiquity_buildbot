@@ -87,7 +87,7 @@ class customizeImage:
 		subprocess.run("pip3 install pyyaml", shell=True, check=True, executable='/bin/bash')
 		subprocess.run('pip3 install networkx', shell=True, check=True, executable='/bin/bash')
 
-		subprocess.run('sudo snap install chromium', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('snap install chromium', shell=True, check=True, executable='/bin/bash')
 
 		# Iris LaMA
 		os.chdir("/home/ubuntu/")		
