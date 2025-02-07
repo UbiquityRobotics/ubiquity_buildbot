@@ -245,7 +245,7 @@ def common_ubiquity_customizations(release="noble",
             #"pifi", #pifi is not yet working with Ubuntu24 ARM64
             # ROS
             #"ros-noetic-ros-base",
-            "sudo apt install ros-jazzy-ros-base",
+            "ros-jazzy-ros-base",
             "python3-rosdep",
             #ROS2
             "python3-colcon-common-extensions",
