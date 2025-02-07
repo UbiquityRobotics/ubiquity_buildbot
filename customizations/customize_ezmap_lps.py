@@ -13,7 +13,7 @@ class customizeImage:
 		self.git_token = git_token
 
 		self.conf = {
-			"hostname": "ezmap",
+			"hostname": "ezrobot",
 			"rootfs_extra_space_mb": 2000,
 			"rootfs": "/image-builds/PiFlavourMaker/focal-build",
 			"flavour": "ezmap-pro-illuminance-measurement",
@@ -28,6 +28,7 @@ class customizeImage:
 				'cairosvg',
 				'poppler-utils',
 				'gedit',
+				'wireless-tools',
 				'python3-dev',
 				'python3-rpi.gpio',
 				'python3-matplotlib',
@@ -43,6 +44,7 @@ class customizeImage:
 				'python3-shapely',
 				'python3-pil',
 				'python3-pdfkit',
+				'python3-xmltodict',
 				'ros-noetic-gps-common',
 				'ros-noetic-raspicam-node',
 				'ros-noetic-pi-sonar',
@@ -68,7 +70,9 @@ class customizeImage:
 		}
 		
 	def execute_customizations(self):
-		gdm3_mod.install()
+		#gdm3_mod.install()
+
+		subprocess.run('sudo snap install chromium', shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 
@@ -121,16 +125,16 @@ class customizeImage:
 			with open(repos_file_path, 'w') as file:
 				file.write(updated_content)
 			    
-		subprocess.run("git clone https://"+github_username+":"+github_token+"@github.com/UbiquityRobotics/ezmap_pro.git --branch illuminance_measurement_lps", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("git clone https://"+github_username+":"+github_token+"@github.com/UbiquityRobotics/"+repo+".git --branch illuminance_measurement_lps", shell=True, check=True, executable='/bin/bash')
 		
-		os.chdir('/home/ubuntu/catkin_ws/src/ezmap_pro')
+		os.chdir('/home/ubuntu/catkin_ws/src/'+repo)
 
-		repos_file_path = "ezmap_pro.repos"  # Ensure this path is correct
+		repos_file_path = repo+".repos"  # Ensure this path is correct
 		github_token = self.git_token  # Use your actual token
 		
 		modify_repos_file_with_token(repos_file_path, github_token)
 		
-		subprocess.run('vcs import < ezmap_pro.repos', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('vcs import < '+repo+'.repos', shell=True, check=True, executable='/bin/bash')
 		
 		os.chdir('/home/ubuntu/catkin_ws')
 		subprocess.run('rosdep install --from-paths src --ignore-src --rosdistro=noetic -y || true', shell=True, check=True, executable='/bin/bash')
@@ -141,6 +145,14 @@ class customizeImage:
 			cwd="/home/ubuntu/catkin_ws",
 			check=True,
 		)
+
+		linux_util.run_as_user(
+			"ubuntu",
+			["bash", "-c", "'npm install; npm run build'"],
+			cwd="/home/ubuntu/catkin_ws/src/"+repo+"/route_select_ui/web_app",
+			check=True,
+		)
+
 		
 		# File edits
 		udev.add_rules()
