@@ -29,7 +29,8 @@ class customizeImage:
 				'poppler-utils',
 				'gedit',
 				'wireless-tools',
-				'snap',
+				'snapd',
+				'libpcap-dev',
 				'python3-dev',
 				'python3-rpi.gpio',
 				'python3-matplotlib',
@@ -147,7 +148,7 @@ class customizeImage:
 
 		linux_util.run_as_user(
 			"ubuntu",
-			["bash", "-c", "'npm install; npm run build'"],
+			["bash", "-c", "npm install; npm run build"],
 			cwd="/home/ubuntu/catkin_ws/src/"+repo+"/route_select_ui/web_app",
 			check=True,
 		)
