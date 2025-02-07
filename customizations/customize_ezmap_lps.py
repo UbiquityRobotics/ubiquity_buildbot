@@ -29,6 +29,7 @@ class customizeImage:
 				'poppler-utils',
 				'gedit',
 				'wireless-tools',
+				'snap',
 				'python3-dev',
 				'python3-rpi.gpio',
 				'python3-matplotlib',
