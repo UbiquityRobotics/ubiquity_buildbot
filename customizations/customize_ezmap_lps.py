@@ -74,6 +74,11 @@ class customizeImage:
 	def execute_customizations(self):
 		#gdm3_mod.install()
 
+		subprocess.run("systemctl unmask snapd.service", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("systemctl enable snapd.service", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("systemctl start snapd.service", shell=True, check=True, executable='/bin/bash')
+		subprocess.run('snap install chromium', shell=True, check=True, executable='/bin/bash')
+
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("export DEBIAN_FRONTEND=noninteractive; apt-get -y install iptables-persistent; unset DEBIAN_FRONTEND", shell=True, check=True, executable='/bin/bash')
@@ -198,7 +203,5 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 		
 		with open("/etc/pifi/default_ap.em", "w") as f:
 			f.write(content)
-
-		subprocess.run('sudo snap install chromium', shell=True, check=True, executable='/bin/bash')
 		
 		return
