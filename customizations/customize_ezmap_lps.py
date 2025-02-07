@@ -29,7 +29,7 @@ class customizeImage:
 				'poppler-utils',
 				'gedit',
 				'wireless-tools',
-				'snapd',
+				'firefox',
 				'libpcap-dev',
 				'chromium-browser',
 				'python3-dev',
