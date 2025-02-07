@@ -87,8 +87,6 @@ class customizeImage:
 		subprocess.run("pip3 install pyyaml", shell=True, check=True, executable='/bin/bash')
 		subprocess.run('pip3 install networkx', shell=True, check=True, executable='/bin/bash')
 
-		subprocess.run('snap install chromium', shell=True, check=True, executable='/bin/bash')
-
 		# Iris LaMA
 		os.chdir("/home/ubuntu/")		
 		
@@ -199,5 +197,7 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 		
 		with open("/etc/pifi/default_ap.em", "w") as f:
 			f.write(content)
+
+		subprocess.run('sudo snap install chromium', shell=True, check=True, executable='/bin/bash')
 		
 		return
