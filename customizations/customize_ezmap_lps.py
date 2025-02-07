@@ -73,8 +73,6 @@ class customizeImage:
 	def execute_customizations(self):
 		#gdm3_mod.install()
 
-		subprocess.run('sudo snap install chromium', shell=True, check=True, executable='/bin/bash')
-
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("export DEBIAN_FRONTEND=noninteractive; apt-get -y install iptables-persistent; unset DEBIAN_FRONTEND", shell=True, check=True, executable='/bin/bash')
@@ -88,6 +86,8 @@ class customizeImage:
 		subprocess.run("systemctl enable pigpiod", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("pip3 install pyyaml", shell=True, check=True, executable='/bin/bash')
 		subprocess.run('pip3 install networkx', shell=True, check=True, executable='/bin/bash')
+
+		subprocess.run('sudo snap install chromium', shell=True, check=True, executable='/bin/bash')
 
 		# Iris LaMA
 		os.chdir("/home/ubuntu/")		
