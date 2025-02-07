@@ -267,7 +267,7 @@ def common_ubiquity_customizations(release="noble",
 
     # Installing python2 because firmware upgrade still has not migrated to py3 and its a blocking feature
     # TODO: When firmware upgrading migrates to py3, this can be removed
-    install_python2()
+    #install_python2()
 
     groups = ["gpio", "i2c", "input", "spi", "bluetooth", "ssl-cert"]
     for group in groups:
