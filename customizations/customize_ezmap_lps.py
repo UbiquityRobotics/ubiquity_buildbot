@@ -31,6 +31,7 @@ class customizeImage:
 				'wireless-tools',
 				'snapd',
 				'libpcap-dev',
+				'chromium-browser',
 				'python3-dev',
 				'python3-rpi.gpio',
 				'python3-matplotlib',
@@ -73,11 +74,6 @@ class customizeImage:
 		
 	def execute_customizations(self):
 		#gdm3_mod.install()
-
-		subprocess.run("systemctl unmask snapd.service", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("systemctl enable snapd.service", shell=True, check=True, executable='/bin/bash')
-		subprocess.run("systemctl start snapd.service", shell=True, check=True, executable='/bin/bash')
-		subprocess.run('snap install chromium', shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 
