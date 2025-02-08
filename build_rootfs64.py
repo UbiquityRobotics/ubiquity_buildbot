@@ -297,6 +297,10 @@ def common_ubiquity_customizations(release="noble",
             "colcon_setup=/home/ubuntu/ros2_ws/install/setup.bash && test -f $colcon_setup && . $colcon_setup\n"
         )
         f.write("source /etc/ubiquity/env.sh\n")
+    try:
+        subprocess.run(["sudo", "groupadd", "ubuntu"], check=True)
+    except subprocess.CalledProcessError:
+        print("Group 'ubuntu' already exists")
     # 1. System user creation
     try:
         # Create user and group
