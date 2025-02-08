@@ -359,12 +359,25 @@ def common_ubiquity_customizations(release="noble",
     )
                                       
     # 💡 Add rosdep fix before any rosdep commands
+# Initialize rosdep
+    subprocess.run(["sudo", "rosdep", "init"], check=True)
+    
+    # Fix permissions
+    subprocess.run([
+        "sudo", "chown", "-R", "ubuntu:ubuntu",
+        "/home/ubuntu/.ros"
+    ], check=True)
 
+    # Update rosdep as ubuntu user
     linux_util.run_as_user(
         "ubuntu",
-        ["rosdep", "update"],
+        ["rosdep", "update", "--include-eol-distros"],
         check=True
     )
+
+except subprocess.CalledProcessError as e:
+    print(f"Error during setup: {e}")
+    exit(1)
 # Ensure required tools are installed
     subprocess.run([
         "apt-get", "install", "-y",
@@ -377,10 +390,7 @@ def common_ubiquity_customizations(release="noble",
 
 
 
-    # Init rosdep
-    subprocess.run(["rosdep", "init"], check=True)
-    subprocess.run(["rosdep", "update"], check=True)
-    linux_util.run_as_user("ubuntu", ["rosdep", "update"])
+
 
     # Create catkin_ws
     os.makedirs("/home/ubuntu/ros2_ws/src")
