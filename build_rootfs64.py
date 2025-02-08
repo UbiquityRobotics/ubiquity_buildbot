@@ -375,9 +375,9 @@ def common_ubiquity_customizations(release="noble",
         check=True
     )
 
-except subprocess.CalledProcessError as e:
-    print(f"Error during setup: {e}")
-    exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"Error during setup: {e}")
+        exit(1)
 # Ensure required tools are installed
     subprocess.run([
         "apt-get", "install", "-y",
