@@ -297,6 +297,37 @@ def common_ubiquity_customizations(release="noble",
             "colcon_setup=/home/ubuntu/ros2_ws/install/setup.bash && test -f $colcon_setup && . $colcon_setup\n"
         )
         f.write("source /etc/ubiquity/env.sh\n")
+    # 1. System user creation
+    try:
+        # Create user and group
+        subprocess.run([
+            "sudo", "adduser", 
+            "--system", 
+            "--ingroup", "ubuntu",
+            "--shell", "/bin/bash",
+            "--home", "/home/ubuntu",
+            "ubuntu"
+        ], check=True)
+        
+        # Force create home directory
+        subprocess.run(["sudo", "mkhomedir_helper", "ubuntu"], check=True)
+    
+    except subprocess.CalledProcessError:
+        print("Failed to create user! Exiting...")
+        exit(1)
+    
+    # 2. Configure passwordless sudo
+    subprocess.run([
+        "sudo", "bash", "-c",
+        "echo 'ubuntu ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/99-ubuntu-nopasswd"
+    ], check=True)
+    subprocess.run(["sudo", "chmod", "0440", "/etc/sudoers.d/99-ubuntu-nopasswd"], check=True)
+    
+    # 3. Verify user setup
+    subprocess.run(["id", "ubuntu"], check=True)
+    subprocess.run(["sudo", "-u", "ubuntu", "whoami"], check=True)  # Should output 'ubuntu'
+    
+    # 4. Continue with ROS workspace setup...
 
     # Make modifying the configs available to UI apps, and less of a hassle in general
     subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
