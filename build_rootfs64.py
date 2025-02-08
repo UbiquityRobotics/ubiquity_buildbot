@@ -311,6 +311,13 @@ def common_ubiquity_customizations(release="noble",
     subprocess.run(["sudo", "adduser", "--system", "--group", "ubuntu"], check=True)
     subprocess.run(["sudo", "mkdir", "-p", "/home/ubuntu"], check=True)
     subprocess.run(["sudo", "chown", "ubuntu:ubuntu", "/home/ubuntu"], check=True)
+
+    linux_util.run_as_user(
+        "ubuntu",
+        ["sudo", "-S", "rosdep", "fix-permissions"],
+        input=b"\n",  # Empty password input
+        check=True
+    )
     
     # 💡 Create ros2_ws directory with proper ownership
     ros2_ws_path = "/home/ubuntu/ros2_ws"
@@ -327,11 +334,7 @@ def common_ubiquity_customizations(release="noble",
     )
     
     # 💡 Add rosdep fix before any rosdep commands
-    linux_util.run_as_user(
-        "ubuntu",
-        ["sudo", "rosdep", "fix-permissions"],
-        check=True
-    )
+
     linux_util.run_as_user(
         "ubuntu",
         ["rosdep", "update"],
