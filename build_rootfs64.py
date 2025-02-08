@@ -307,9 +307,17 @@ def common_ubiquity_customizations(release="noble",
         ros_source += "source /etc/ubiquity/ros_setup.bash\n"
         f.write(ros_source)
 
-    subprocess.run(["sudo", "adduser", "--system", "--group", "ubuntu"])
-    subprocess.run(["sudo", "mkdir", "-p", "/home/ubuntu"])
-    subprocess.run(["sudo", "chown", "ubuntu:ubuntu", "/home/ubuntu"])
+    # 💡 Explicitly create 'ubuntu' user before any operations
+    subprocess.run(["sudo", "adduser", "--system", "--group", "ubuntu"], check=True)
+    subprocess.run(["sudo", "mkdir", "-p", "/home/ubuntu"], check=True)
+    subprocess.run(["sudo", "chown", "ubuntu:ubuntu", "/home/ubuntu"], check=True)
+    
+    # 💡 Create ros2_ws directory with proper ownership
+    ros2_ws_path = "/home/ubuntu/ros2_ws"
+    if not os.path.exists(ros2_ws_path):
+        os.makedirs(ros2_ws_path, exist_ok=True)
+        subprocess.run(["sudo", "chown", "-R", "ubuntu:ubuntu", ros2_ws_path], check=True)
+
     # 💡 Add ROS2 workspace build (uncomment and modify for ROS2)
     linux_util.run_as_user(
         "ubuntu",
@@ -334,7 +342,9 @@ def common_ubiquity_customizations(release="noble",
         "apt-get", "install", "-y",
         "device-tree-compiler",  # For dtc
         "python3-rosdep",       # ROS2 dependency management
-        "python3-colcon-common-extensions"  # Build system
+        "python3-colcon-common-extensions",
+        "ros-jazzy-desktop",
+        "build-essential"# Build system
     ], check=True)
 
 
@@ -370,24 +380,32 @@ def common_ubiquity_customizations(release="noble",
         check=True,
     )
     # 💡 Add Device Tree Overlay compilation step
-    overlay_src = "/home/ubuntu/ros2_ws/src/magni_robot/raspberrypi/overlays/ubiquity-led-buttons.dts"  # Verify path
+    # 💡 Add Device Tree Overlay compilation from source
+    overlay_src = "/home/ubuntu/ros2_ws/src/magni_robot/raspberrypi/overlays/ubiquity-led-buttons.dts"
     overlay_dest = "/boot/overlays/ubiquity-led-buttons.dtbo"
     
+    # Compile if source exists
     if os.path.exists(overlay_src):
-        # Compile Device Tree Overlay
         subprocess.run([
             "dtc", "-@", "-I", "dts", "-O", "dtb",
             "-o", overlay_dest, overlay_src
         ], check=True)
+        shutil.copy(overlay_dest, "/boot/overlays/")
     else:
-        raise FileNotFoundError(f"Device Tree Source not found at {overlay_src}")
+        raise FileNotFoundError(f"Device Tree Source missing: {overlay_src}")
+    
 
         # 💡 Modified copy command with existence check
     if os.path.exists(overlay_dest):
         shutil.copy(overlay_dest, "/boot/overlays/")
     else:
         raise FileNotFoundError("Failed to generate Device Tree Overlay")
-    
+        # 💡 Initialize ROS2 workspace properly
+    linux_util.run_as_user(
+        "ubuntu",
+        ["bash", "-c", "mkdir -p /home/ubuntu/ros2_ws/src"],
+        check=True
+    )
     # 💡 Add ROS2 workspace build (uncomment and modify for ROS2)
     linux_util.run_as_user(
         "ubuntu",
@@ -395,6 +413,8 @@ def common_ubiquity_customizations(release="noble",
         cwd="/home/ubuntu/ros2_ws",
         check=True,
     )
+
+
     # compile and source
     # linux_util.run_as_user(
     #     "ubuntu",
