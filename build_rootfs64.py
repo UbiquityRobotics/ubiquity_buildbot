@@ -307,10 +307,6 @@ def common_ubiquity_customizations(release="noble",
         ros_source += "source /etc/ubiquity/ros_setup.bash\n"
         f.write(ros_source)
 
-    # 💡 Explicitly create 'ubuntu' user before any operations
-    subprocess.run(["sudo", "adduser", "--system", "--group", "ubuntu"], check=True)
-    subprocess.run(["sudo", "mkdir", "-p", "/home/ubuntu"], check=True)
-    subprocess.run(["sudo", "chown", "ubuntu:ubuntu", "/home/ubuntu"], check=True)
 
     linux_util.run_as_user(
         "ubuntu",
@@ -332,7 +328,13 @@ def common_ubiquity_customizations(release="noble",
         cwd="/home/ubuntu/ros2_ws",
         check=True,
     )
-    
+                                      
+    linux_util.run_as_user(
+        "ubuntu",
+        ["bash", "-c", "ubuntu ALL=(ALL) NOPASSWD: /usr/bin/rosdep fix-permissions"],
+        cwd="/home/ubuntu/ros2_ws/src",
+        check=True,
+    )
     # 💡 Add rosdep fix before any rosdep commands
 
     linux_util.run_as_user(
