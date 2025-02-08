@@ -343,10 +343,13 @@ def common_ubiquity_customizations(release="noble",
         f.write(ros_source)
 
     # 💡 Create ros2_ws directory with proper ownership
-    ros2_ws_path = "/home/ubuntu/ros2_ws"
-    if not os.path.exists(ros2_ws_path):
-        os.makedirs(ros2_ws_path, exist_ok=True)
-        subprocess.run(["sudo", "chown", "-R", "ubuntu:ubuntu", ros2_ws_path], check=True)
+# Define paths
+    ros2_ws = "/home/ubuntu/ros2_ws"
+    ros2_ws_src = os.path.join(ros2_ws, "src")
+    
+    # Create directories with proper ownership
+    os.makedirs(ros2_ws_src, exist_ok=True, mode=0o755)
+    subprocess.run(["sudo", "chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"], check=True)
 
     # 💡 Add ROS2 workspace build (uncomment and modify for ROS2)
     linux_util.run_as_user(
