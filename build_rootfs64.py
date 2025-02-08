@@ -186,7 +186,8 @@ UseMTU=true
         f.write(network_conf)
 
 def common_ubiquity_customizations(release="noble", 
-                                   hostname="ubuntu"):
+                                   hostname="ubuntu",
+                                  git_token=""):
     ubuntu_apt_sources(release, use_local_mirror=True) #add ubuntu apt sources
     apt_update() # update ubuntu apt sources first and sync time
     ros_apt_sources(release) #add ros apt sources
@@ -327,7 +328,7 @@ def common_ubiquity_customizations(release="noble",
     # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
     linux_util.run_as_user(
         "ubuntu",
-        ["bash", "-c", f"git clone https://{git.token}@github.com/UbiquityRobotics/ubiquity_motor_ros2"],
+        ["bash", "-c", f"git clone https://{git_token}@github.com/UbiquityRobotics/ubiquity_motor_ros2"],
         cwd="/home/ubuntu/ros2_ws/src",
         check=True,
     )
@@ -335,7 +336,7 @@ def common_ubiquity_customizations(release="noble",
     #clone Magni robot jazzy devel bracnh                                   
     linux_util.run_as_user(
         "ubuntu",
-        ["bash", "-c", f"git clone https://{git.token}@github.com/UbiquityRobotics/magni_robot.git -b jazzy-devel"],
+        ["bash", "-c", f"git clone https://{git_token}@github.com/UbiquityRobotics/magni_robot.git -b jazzy-devel"],
         cwd="/home/ubuntu/ros2_ws/src",
         check=True,
     )
@@ -523,18 +524,17 @@ def build_rootfs_from_params(rootfs="/image-builds/PiFlavourMaker/noble-build",
 
     with Chroot(rootfs, mountpoints=chroot_mountpoints):
         apt_update()
-        
-        # we assume that the backup already has common ur customizations
-        # that is why if restored from backup, we simply skip this step again
-        if not restored_from_backup:
-            common_ubiquity_customizations(release,
-                                           hostname)
 
-    
         # set git token as temporary global variable so external apt packages can easily authenticate 
         # git actions using command "git clone https://$GIT_TOKEN@github.com/repolik.git"
         if git_token != "":
             os.environ["GIT_TOKEN"] = git_token
+        # we assume that the backup already has common ur customizations
+        # that is why if restored from backup, we simply skip this step again
+        if not restored_from_backup:
+            common_ubiquity_customizations(release, hostname, git_token)
+
+    
 
         # if the customization script path was given, execute customizations
         if customize_image != None:
