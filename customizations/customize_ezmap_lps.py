@@ -74,8 +74,9 @@ class customizeImage:
 	def execute_customizations(self):
 		#gdm3_mod.install()
 
-		#disable GUI
+		#disable GUI and timeout
 		subprocess.run("systemctl set-default multi-user.target", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("gsettings set org.gnome.desktop.session idle-delay 0", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 
