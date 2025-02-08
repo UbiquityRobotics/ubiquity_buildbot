@@ -297,41 +297,40 @@ def common_ubiquity_customizations(release="noble",
             "colcon_setup=/home/ubuntu/ros2_ws/install/setup.bash && test -f $colcon_setup && . $colcon_setup\n"
         )
         f.write("source /etc/ubiquity/env.sh\n")
+        # 1. Create group with fixed GID
     try:
-        subprocess.run(["sudo", "groupadd", "ubuntu"], check=True)
+        subprocess.run([
+            "sudo", "groupadd", "-g", "1000", "ubuntu"
+        ], check=True)
     except subprocess.CalledProcessError:
         print("Group 'ubuntu' already exists")
-    # 1. System user creation
-    try:
-        # Create user and group
-        subprocess.run([
-            "sudo", "adduser", 
-            "--system", 
-            "--ingroup", "ubuntu",
-            "--shell", "/bin/bash",
-            "--home", "/home/ubuntu",
-            "ubuntu"
-        ], check=True)
-        
-        # Force create home directory
-        subprocess.run(["sudo", "mkhomedir_helper", "ubuntu"], check=True)
     
-    except subprocess.CalledProcessError:
-        print("Failed to create user! Exiting...")
-        exit(1)
-    
-    # 2. Configure passwordless sudo
+    # 2. Create user with fixed UID/GID
     subprocess.run([
-        "sudo", "bash", "-c",
-        "echo 'ubuntu ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/99-ubuntu-nopasswd"
+        "sudo", "useradd",
+        "--system",
+        "--uid", "1000",
+        "--gid", "1000",
+        "--create-home",
+        "--shell", "/bin/bash",
+        "ubuntu"
     ], check=True)
-    subprocess.run(["sudo", "chmod", "0440", "/etc/sudoers.d/99-ubuntu-nopasswd"], check=True)
     
-    # 3. Verify user setup
-    subprocess.run(["id", "ubuntu"], check=True)
-    subprocess.run(["sudo", "-u", "ubuntu", "whoami"], check=True)  # Should output 'ubuntu'
+    # 3. Configure sudoers safely
+    with open("/tmp/ubuntu-sudoers", "w") as f:
+        f.write("ubuntu ALL=(ALL) NOPASSWD: /usr/bin/rosdep fix-permissions\n")
     
-    # 4. Continue with ROS workspace setup...
+    subprocess.run([
+        "sudo", "install", "-o", "root", "-g", "root",
+        "-m", "0440", "/tmp/ubuntu-sudoers", "/etc/sudoers.d/ubuntu"
+    ], check=True)
+    
+    # 4. Create ROS workspace
+    workspace_path = "/home/ubuntu/ros2_ws/src"
+    os.makedirs(workspace_path, exist_ok=True)
+    subprocess.run([
+        "sudo", "chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"
+    ], check=True)
 
     # Make modifying the configs available to UI apps, and less of a hassle in general
     subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
