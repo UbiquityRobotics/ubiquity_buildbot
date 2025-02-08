@@ -307,14 +307,6 @@ def common_ubiquity_customizations(release="noble",
         ros_source += "source /etc/ubiquity/ros_setup.bash\n"
         f.write(ros_source)
 
-
-    linux_util.run_as_user(
-        "ubuntu",
-        ["sudo", "-S", "rosdep", "fix-permissions"],
-        input=b"\n",  # Empty password input
-        check=True
-    )
-    
     # 💡 Create ros2_ws directory with proper ownership
     ros2_ws_path = "/home/ubuntu/ros2_ws"
     if not os.path.exists(ros2_ws_path):
