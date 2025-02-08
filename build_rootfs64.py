@@ -327,7 +327,7 @@ def common_ubiquity_customizations(release="noble",
     # clone the ubiquity_motor TODO - when apt update of this is figured out, cloning this can be removed
     linux_util.run_as_user(
         "ubuntu",
-        ["bash", "-c", "git clone https://github.com/UbiquityRobotics/ubiquity_motor_ros2"],
+        ["bash", "-c", f"git clone https://{git.token}@github.com/UbiquityRobotics/ubiquity_motor_ros2"],
         cwd="/home/ubuntu/ros2_ws/src",
         check=True,
     )
@@ -335,7 +335,7 @@ def common_ubiquity_customizations(release="noble",
     #clone Magni robot jazzy devel bracnh                                   
     linux_util.run_as_user(
         "ubuntu",
-        ["bash", "-c", "git clone https://github.com/UbiquityRobotics/magni_robot.git -b jazzy-devel"],
+        ["bash", "-c", f"git clone https://{git.token}@github.com/UbiquityRobotics/magni_robot.git -b jazzy-devel"],
         cwd="/home/ubuntu/ros2_ws/src",
         check=True,
     )
