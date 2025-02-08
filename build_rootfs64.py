@@ -358,12 +358,6 @@ def common_ubiquity_customizations(release="noble",
         check=True,
     )
                                       
-    linux_util.run_as_user(
-        "ubuntu",
-        ["bash", "-c", "ubuntu ALL=(ALL) NOPASSWD: /usr/bin/rosdep fix-permissions"],
-        cwd="/home/ubuntu/ros2_ws/src",
-        check=True,
-    )
     # 💡 Add rosdep fix before any rosdep commands
 
     linux_util.run_as_user(
