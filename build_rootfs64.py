@@ -476,9 +476,20 @@ def common_ubiquity_customizations(release="noble",
         f.write("\ni2c-dev\n\n")
 
     # Enable resizefs
-    shutil.copy("/files/resize2fs_once", "/etc/init.d/resize2fs_once")
-    subprocess.run(["systemctl", "enable", "resize2fs_once"], check=True)
-
+    # Define the correct path to the resize2fs_once script
+    resize2fs_script_path = "/path/to/resize2fs_once"
+    
+    # Check if the script exists
+    if os.path.exists(resize2fs_script_path):
+        shutil.copy(resize2fs_script_path, "/etc/init.d/resize2fs_once")
+    else:
+        print(f"Error: resize2fs_once script not found at {resize2fs_script_path}")
+    
+    try:
+        subprocess.run(["systemctl", "enable", "resize2fs_once"], check=True)
+    except subprocess.CalledProcessError:
+        print("Failed to enable resize2fs_once service. It may not exist or there might be permission issues.")
+        # Handle the error as needed
     # These 2 firmware directories are large, and we are never going to use them on a Pi
     shutil.rmtree("/usr/lib/firmware/netronome")
     shutil.rmtree("/usr/lib/firmware/amdgpu")
