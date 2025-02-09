@@ -374,9 +374,6 @@ def common_ubiquity_customizations(release="noble",
     ], check=True)
 
 
-    subprocess.run(["echo", "//////////////////////////////BREAK//////////////////////"])
-
-
     # Create catkin_ws
 
     subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/ros2_ws"])
@@ -494,12 +491,12 @@ def common_ubiquity_customizations(release="noble",
         "/boot/overlays/ubiquity-led-buttons.dtbo",
     )
     '''
-    shutil.copy("/files/pifi.conf", "/etc/pifi/pifi.conf")
-    shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
-
+    #shutil.copy("/files/pifi.conf", "/etc/pifi/pifi.conf")
+    #shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
+    subprocess.run(["echo", "//////////////////////////////BREAK//////////////////////"])
     # Enable pigpio daemon that we use for sonars
     subprocess.run(["systemctl", "enable", "pigpiod.service"], check=True)
-
+    subprocess.run(["echo", "//////////////////////////////BREAK//////////////////////"])
     # Enable systemd-networkd that we use for ethernet
     subprocess.run(["systemctl", "enable", "systemd-networkd.service"], check=True)
 
