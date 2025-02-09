@@ -362,11 +362,6 @@ def common_ubiquity_customizations(release="noble",
 # Initialize rosdep
     subprocess.run(["sudo", "rosdep", "init"], check=True)
     
-    # Fix permissions
-    subprocess.run([
-        "sudo", "chown", "-R", "ubuntu:ubuntu",
-        "/home/ubuntu/.ros"
-    ], check=True)
 
     # Update rosdep as ubuntu user
     linux_util.run_as_user(
