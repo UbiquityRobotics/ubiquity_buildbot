@@ -326,11 +326,11 @@ def common_ubiquity_customizations(release="noble",
     ], check=True)
     
     # 4. Create ROS workspace
-   #workspace_path = "/home/ubuntu/ros2_ws/src"
-    #os.makedirs(workspace_path, exist_ok=True)
-    #subprocess.run([
-        #"sudo", "chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"
-    #], check=True)
+    workspace_path = "/home/ubuntu/ros2_ws/src"
+    os.makedirs(workspace_path, exist_ok=True)
+    subprocess.run([
+        "sudo", "chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"
+        ], check=True)
 
     # Make modifying the configs available to UI apps, and less of a hassle in general
     subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
@@ -378,7 +378,7 @@ def common_ubiquity_customizations(release="noble",
 
 
     # Create catkin_ws
-    os.makedirs("/home/ubuntu/ros2_ws/src")
+
     subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/home/ubuntu/ros2_ws"])
     linux_util.run_as_user(
         "ubuntu",
