@@ -326,11 +326,11 @@ def common_ubiquity_customizations(release="noble",
     ], check=True)
     
     # 4. Create ROS workspace
-    workspace_path = "/home/ubuntu/ros2_ws/src"
-    os.makedirs(workspace_path, exist_ok=True)
-    subprocess.run([
-        "sudo", "chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"
-    ], check=True)
+   #workspace_path = "/home/ubuntu/ros2_ws/src"
+    #os.makedirs(workspace_path, exist_ok=True)
+    #subprocess.run([
+        #"sudo", "chown", "-R", "ubuntu:ubuntu", "/home/ubuntu"
+    #], check=True)
 
     # Make modifying the configs available to UI apps, and less of a hassle in general
     subprocess.run(["chown", "-R", "ubuntu:ubuntu", "/etc/ubiquity"])
@@ -374,7 +374,7 @@ def common_ubiquity_customizations(release="noble",
     ], check=True)
 
 
-
+    subprocess.run(["echo", "//////////////////////////////BREAK//////////////////////"])
 
 
     # Create catkin_ws
@@ -424,18 +424,8 @@ def common_ubiquity_customizations(release="noble",
     else:
         raise FileNotFoundError("Failed to generate Device Tree Overlay")
         # 💡 Initialize ROS2 workspace properly
-    linux_util.run_as_user(
-        "ubuntu",
-        ["bash", "-c", "mkdir -p /home/ubuntu/ros2_ws/src"],
-        check=True
-    )
+
     # 💡 Add ROS2 workspace build (uncomment and modify for ROS2)
-    linux_util.run_as_user(
-        "ubuntu",
-        ["bash", "-c", "source /opt/ros/jazzy/setup.bash && colcon build --symlink-install"],
-        cwd="/home/ubuntu/ros2_ws",
-        check=True,
-    )
 
 
     # compile and source
