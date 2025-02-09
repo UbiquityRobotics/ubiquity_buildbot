@@ -74,9 +74,9 @@ class customizeImage:
 	def execute_customizations(self):
 		#gdm3_mod.install()
 
-		#disable GUI and timeout
+		#disable GUI and enable start from user
 		subprocess.run("systemctl set-default multi-user.target", shell=True, check=True, executable='/bin/bash')
-		#subprocess.run("gsettings set org.gnome.desktop.session idle-delay 0", shell=True, check=True, executable='/bin/bash')
+		subprocess.run("sudo sed -i 's/allowed.*/allowed_users=anybody/' /etc/X11/Xwrapper.config", shell=True, check=True, executable='/bin/bash')
 
 		subprocess.run("git config --global credential.helper 'cache --timeout=120'", shell=True, check=True, executable='/bin/bash')
 
@@ -190,7 +190,7 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 		subprocess.run("chown -R ubuntu:ubuntu /etc/ubiquity", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("touch /home/ubuntu/.ros/conf.yaml", shell=True, check=True, executable='/bin/bash')
-		
+		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu/.ros", shell=True, check=True, executable='/bin/bash')
 		
 		#add channel and band lines to the /etc/pifi/default_ap.em
 		subprocess.run('chown -R ubuntu:ubuntu /etc/pifi', shell=True, check=True, executable='/bin/bash')
