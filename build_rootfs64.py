@@ -238,7 +238,7 @@ def common_ubiquity_customizations(release="noble",
             #"raspberrypi-bootloader",
             "linux-firmware",
             "raspi-config",
-            #"pigpiod",
+            "pigpiod",
             # Network Access
             "openssh-server",
             "libnss-mdns",
