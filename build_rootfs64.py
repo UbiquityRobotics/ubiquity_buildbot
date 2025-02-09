@@ -404,7 +404,7 @@ def common_ubiquity_customizations(release="noble",
     )
     # 💡 Add Device Tree Overlay compilation step
     # 💡 Add Device Tree Overlay compilation from source
-'''
+    '''
     overlay_src = "/home/ubuntu/ros2_ws/src/magni_robot/raspberrypi/overlays/ubiquity-led-buttons.dts"
     overlay_dest = "/boot/overlays/ubiquity-led-buttons.dtbo"
     
@@ -428,7 +428,7 @@ def common_ubiquity_customizations(release="noble",
 
     # 💡 Add ROS2 workspace build (uncomment and modify for ROS2)
 
-'''
+    '''
     # compile and source
     # linux_util.run_as_user(
     #     "ubuntu",
