@@ -488,8 +488,8 @@ def common_ubiquity_customizations(release="noble",
 
     # Copy device tree overlay for pifi buttons
     shutil.copy(
-        "/device-tree/ubiquity-led-buttons.dtbo",
-        "/boot/overlays/ubiquity-led-buttons.dtbo",
+        "/device-tree/ubiquity-led-buttons.dtbo"
+        #"/boot/overlays/ubiquity-led-buttons.dtbo",
     )
 
     # Enable pigpio daemon that we use for sonars
