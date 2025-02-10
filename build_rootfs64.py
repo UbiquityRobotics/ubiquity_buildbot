@@ -516,9 +516,6 @@ def common_ubiquity_customizations(release="noble",
         f.write(service_content)
 
     subprocess.run(["systemctl", "enable", "pigpiod.service"], check=True)
-    subprocess.run(["pip3", "install", "pigpio"], check=True)
-    os.chdir("/")
-    subprocess.run(["rm", "-rf", "/tmp/pigpio"], check=True)
 
     subprocess.run(["echo", "//////////////////////////////BREAK//////////////////////"])
     # Enable systemd-networkd that we use for ethernet
