@@ -495,30 +495,31 @@ def common_ubiquity_customizations(release="noble",
     #shutil.copy("/files/default_ap.em", "/etc/pifi/default_ap.em")
     subprocess.run(["echo", "//////////////////////////////BREAK//////////////////////"])
     # Install dependencies
-    subprocess.run(["apt", "install", "-y", "python3-pigpio", "python3-pip"], check=True)
+    subprocess.run(["apt", "install", "-y", "python3-pigpio", "python3-pip", "git", "make"], check=True)
     
     # Clone the pigpio repository
     subprocess.run(["git", "clone", "https://github.com/joan2937/pigpio.git", "/tmp/pigpio"], check=True)
-    
-    # Change to the pigpio directory
     os.chdir("/tmp/pigpio")
-    
-    # Build pigpio
     subprocess.run(["make"], check=True)
-    
-    # Install pigpio
     subprocess.run(["make", "install"], check=True)
-    
-    # Start the pigpio daemon
-    subprocess.run(["pigpiod"], check=True)
-    
-    # Enable the pigpio daemon to start on boot
-    subprocess.run(["systemctl", "enable", "pigpiod"], check=True)
-    
-    # Install the Python library
-    subprocess.run(["pip3", "install", "pigpio"], check=True)
-    # Enable pigpio daemon that we use for sonars
+
+    service_content = """
+    [Unit]
+    Description=Daemon required to control GPIO pins via pigpio
+    [Service]
+    ExecStart=/usr/local/bin/pigpiod
+    Type=forking
+    [Install]
+    WantedBy=multi-user.target
+    """
+    with open("/etc/systemd/system/pigpiod.service", "w") as f:
+        f.write(service_content)
+
     subprocess.run(["systemctl", "enable", "pigpiod.service"], check=True)
+    subprocess.run(["pip3", "install", "pigpio"], check=True)
+    os.chdir("/")
+    subprocess.run(["rm", "-rf", "/tmp/pigpio"], check=True)
+
     subprocess.run(["echo", "//////////////////////////////BREAK//////////////////////"])
     # Enable systemd-networkd that we use for ethernet
     subprocess.run(["systemctl", "enable", "systemd-networkd.service"], check=True)
