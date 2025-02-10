@@ -253,6 +253,8 @@ def common_ubiquity_customizations(release="noble",
             "ros-jazzy-controller-manager",
             "ros-jazzy-joint-state-publisher",
             "ros-jazzy-xacro",
+            "ros-jazzy-ros2-control",
+            "ros-jazzy-ros2-controllers",
             "python3-setuptools",
             # magni common,
             #ros-noetic-magni-robot is a package, that is currently being built for ros2 and will therfore be inside ros2_ws
