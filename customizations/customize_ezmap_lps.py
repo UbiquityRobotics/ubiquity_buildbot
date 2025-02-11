@@ -194,7 +194,7 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 		subprocess.run('echo "   avoid_t_collision: false" >> conf.yaml', shell=True, check=True, executable='/bin/bash')
 		subprocess.run('echo "params:" >> conf.yaml', shell=True, check=True, executable='/bin/bash')
 		subprocess.run('echo "  debug_mode: off" >> conf.yaml', shell=True, check=True, executable='/bin/bash')
-  		subprocess.run('echo "  movement_node: smooth" >> conf.yaml', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('echo "  movement_node: smooth" >> conf.yaml', shell=True, check=True, executable='/bin/bash')
 		
 		#add channel and band lines to the /etc/pifi/default_ap.em
 		subprocess.run('chown -R ubuntu:ubuntu /etc/pifi', shell=True, check=True, executable='/bin/bash')
