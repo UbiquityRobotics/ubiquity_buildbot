@@ -343,6 +343,11 @@ def common_ubiquity_customizations(release="noble",
         ros_source += "source /etc/ubiquity/ros_setup.bash\n"
         f.write(ros_source)
 
+    linux_util.create_user("ubuntu", "ubuntu")
+    linux_util.add_user_sudo("ubuntu")
+
+    subprocess.run("nmcli dev wifi hotspot ifname wlan0 ssid ubiquityrobot password robotseverywhere")
+
 
     # 💡 Add ROS2 workspace build (uncomment and modify for ROS2)
     linux_util.run_as_user(
@@ -465,6 +470,9 @@ def common_ubiquity_customizations(release="noble",
 """
         f.write(fstab)
 
+    os.mkdirs("/usr/lib/raspi-config")
+    shutil.copy("/files/init_resize.sh", "/usr/lib/raspi-config/init_resize.sh"
+    
     shutil.copy("/files/config.txt", "/boot/config.txt")
     with open("/boot/cmdline.txt", "w") as f:
         cmdline = "dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait quiet splash plymouth.ignore-serial-consoles init=/usr/lib/raspi-config/init_resize.sh"
