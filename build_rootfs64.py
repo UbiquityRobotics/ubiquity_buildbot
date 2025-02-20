@@ -343,8 +343,8 @@ def common_ubiquity_customizations(release="noble",
         ros_source += "source /etc/ubiquity/ros_setup.bash\n"
         f.write(ros_source)
 
-    linux_util.create_user("ubuntu", "ubuntu")
-    linux_util.add_user_sudo("ubuntu")
+    #linux_util.create_user("ubuntu", "ubuntu")
+    #linux_util.add_user_sudo("ubuntu")
 
     subprocess.run("nmcli dev wifi hotspot ifname wlan0 ssid ubiquityrobot password robotseverywhere")
 
