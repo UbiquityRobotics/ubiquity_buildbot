@@ -347,7 +347,7 @@ def common_ubiquity_customizations(release="noble",
     #linux_util.create_user("ubuntu", "ubuntu")
     #linux_util.add_user_sudo("ubuntu")
 
-    subprocess.run("nmcli dev wifi hotspot ifname wlan0 ssid ubiquityrobot password robotseverywhere")
+    #subprocess.run("nmcli dev wifi hotspot ifname wlan0 ssid ubiquityrobot password robotseverywhere")
 
 
     # 💡 Add ROS2 workspace build (uncomment and modify for ROS2)
