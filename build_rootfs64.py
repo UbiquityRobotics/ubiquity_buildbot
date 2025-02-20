@@ -230,6 +230,7 @@ def common_ubiquity_customizations(release="noble",
             "fake-hwclock",
             "hwclock-sync",
             "ssl-cert",
+            "network-manager",
             # Raspberry Pi
             "libraspberrypi-bin",
             "libraspberrypi-dev",
