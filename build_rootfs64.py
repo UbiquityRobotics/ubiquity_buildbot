@@ -471,7 +471,7 @@ def common_ubiquity_customizations(release="noble",
 """
         f.write(fstab)
 
-    os.mkdirs("/usr/lib/raspi-config")
+    os.makedirs("/usr/lib/raspi-config")
     shutil.copy("/files/init_resize.sh", "/usr/lib/raspi-config/init_resize.sh")
     
     shutil.copy("/files/config.txt", "/boot/config.txt")
