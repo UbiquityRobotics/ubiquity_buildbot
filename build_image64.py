@@ -225,6 +225,7 @@ def main():
                     print("The next couple of rsync executions will fail with 'Operation not permitted'. This can be ignored.")
                     subprocess.run(["rsync", "-aHAXx", conf["rootfs"] + "/", "mount/"], check=False)
  #/////////////////////////////////////////////////
+                    '''
                     # Ensure config.txt is present in boot partition
                     if not os.path.exists("mount/boot/config.txt"):
                         print("Creating config.txt for Raspberry Pi 5...")
@@ -234,6 +235,7 @@ def main():
 
                     # Create boot.img
                     create_boot_img("mount/boot")
+                    '''
  #/////////////////////////////////////////////////
             # don't compress image if skip_compressing_image is true
             if not py_arguments.skip_compressing_image:
