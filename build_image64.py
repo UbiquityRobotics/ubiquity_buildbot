@@ -56,7 +56,18 @@ def apply_rpi_rev_15_fix():
     file_path = os.path.dirname(os.path.realpath(__file__))
     print("Applying rev 1.5 fix for raspebrry pi")
     subprocess.run("cp "+file_path+"/files/boot_files/* " + conf["rootfs"]+"/boot/", shell=True, check=True)
+#/////////////////////////////////////////////////
+    # Add any Pi 5 specific files here
+    subprocess.run(f"cp {file_path}/files/pi5_boot_files/* {conf['rootfs']}/boot/", shell=True, check=True)
 
+def create_boot_img(boot_dir):
+    print("Creating boot.img...")
+    subprocess.run(["dd", "if=/dev/zero", "of=boot.img", "bs=1M", "count=256"], check=True)
+    subprocess.run(["mkfs.vfat", "boot.img"], check=True)
+    with image_util.mount_context_manager("boot.img", "boot_mount", "vfat"):
+        subprocess.run(["cp", "-r", f"{boot_dir}/*", "boot_mount/"], check=True)
+    subprocess.run(["mv", "boot.img", f"{boot_dir}/boot.img"], check=True)
+#/////////////////////////////////////////////////
 def main():
     global conf
 
@@ -181,8 +192,20 @@ def main():
         print("Created image: "+conf["imagedir"]+"/"+image)
 
         with image_util.loopdev_context_manager(conf["imagedir"]+"/"+image) as loop:
+#/////////////////////////////////////////////////
+                        # Ensure 1MiB alignment
+            subprocess.run(["parted", "-s", loop, "mklabel", "gpt"], check=True)
+            subprocess.run(["parted", "-s", loop, "mkpart", "primary", "fat32", "1MiB", "256MiB"], check=True)
+            subprocess.run(["parted", "-s", loop, "mkpart", "primary", "ext4", "256MiB", "100%"], check=True)
+  #/////////////////////////////////////////////////          
             boot_loop = loop + "p1"
             root_loop = loop + "p2"
+#/////////////////////////////////////////////////  
+            # Format partitions
+            subprocess.run(["mkfs.vfat", "-F", "32", "-n", "BOOT", boot_loop], check=True)
+            subprocess.run(["mkfs.ext4", "-L", "ROOT", "-m", "0", root_loop], check=True)
+ #/////////////////////////////////////////////////             
+'''
             subprocess.run(
                 ["mkfs.vfat", "-n", "BOOT", "-S", "512", "-s", "16", "-v", boot_loop],
                 check=True,
@@ -192,7 +215,7 @@ def main():
                 ["mkfs.ext4", "-L", "ROOT", "-m", "0", "-O", "^huge_file", root_loop],
                 check=True,
             )
-
+'''
             with image_util.mount_context_manager(root_loop, "mount", "ext4"):
                 os.makedirs("mount/boot", exist_ok=True)
                 with image_util.mount_context_manager(boot_loop, "mount/boot", "vfat"):
@@ -201,7 +224,17 @@ def main():
                     # a better solution, like figuring out how to ignore only the expected error.
                     print("The next couple of rsync executions will fail with 'Operation not permitted'. This can be ignored.")
                     subprocess.run(["rsync", "-aHAXx", conf["rootfs"] + "/", "mount/"], check=False)
+ #/////////////////////////////////////////////////
+                    # Ensure config.txt is present in boot partition
+                    if not os.path.exists("mount/boot/config.txt"):
+                        print("Creating config.txt for Raspberry Pi 5...")
+                        with open("mount/boot/config.txt", "w") as f:
+                            f.write("# Raspberry Pi 5 boot configuration\n")
+                            f.write("boot_ramdisk=0\n")  # Adjust as needed
 
+                    # Create boot.img
+                    create_boot_img("mount/boot")
+ #/////////////////////////////////////////////////
             # don't compress image if skip_compressing_image is true
             if not py_arguments.skip_compressing_image:
                 print("Compressing image to "+conf["imagedir"]+"/"+image+".xz")
@@ -215,10 +248,9 @@ def main():
 
             print("Overwriting latest_image with: "+conf["imagedir"]+"/"+image)
             # overwrite latest_image the name of the latest image for buildbot to be able to upload
-            f = open("latest_image", "w")
-            f.write(conf["imagedir"]+"/"+image)
+            with open("latest_image", "w") as f:
+                f.write(conf["imagedir"]+"/"+image)
             subprocess.run(["chmod", "a+r", "latest_image"], check=False)
-            f.close()
     else:
         print("Skipping making of .img file")
 
