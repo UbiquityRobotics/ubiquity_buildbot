@@ -58,7 +58,7 @@ def apply_rpi_rev_15_fix():
     subprocess.run("cp "+file_path+"/files/boot_files/* " + conf["rootfs"]+"/boot/", shell=True, check=True)
 #/////////////////////////////////////////////////
     # Add any Pi 5 specific files here
-    subprocess.run(f"cp {file_path}/files/pi5_boot_files/* {conf['rootfs']}/boot/", shell=True, check=True)
+    #subprocess.run(f"cp {file_path}/files/pi5_boot_files/* {conf['rootfs']}/boot/", shell=True, check=True)
 
 def create_boot_img(boot_dir):
     print("Creating boot.img...")
