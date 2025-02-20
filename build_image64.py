@@ -205,7 +205,7 @@ def main():
             subprocess.run(["mkfs.vfat", "-F", "32", "-n", "BOOT", boot_loop], check=True)
             subprocess.run(["mkfs.ext4", "-L", "ROOT", "-m", "0", root_loop], check=True)
  #/////////////////////////////////////////////////             
-'''
+            '''
             subprocess.run(
                 ["mkfs.vfat", "-n", "BOOT", "-S", "512", "-s", "16", "-v", boot_loop],
                 check=True,
@@ -215,7 +215,7 @@ def main():
                 ["mkfs.ext4", "-L", "ROOT", "-m", "0", "-O", "^huge_file", root_loop],
                 check=True,
             )
-'''
+            '''
             with image_util.mount_context_manager(root_loop, "mount", "ext4"):
                 os.makedirs("mount/boot", exist_ok=True)
                 with image_util.mount_context_manager(boot_loop, "mount/boot", "vfat"):
