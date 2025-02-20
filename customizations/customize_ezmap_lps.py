@@ -190,37 +190,14 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 		subprocess.run("chown -R ubuntu:ubuntu /etc/ubiquity", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu", shell=True, check=True, executable='/bin/bash')
 		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu/.ros", shell=True, check=True, executable='/bin/bash')
-
-		linux_util.run_as_user(
-			"ubuntu",
-			['echo "move_smooth:" >> /home/ubuntu/.ros/conf.yaml'],
-			cwd="/home/ubuntu/",
-			check=True,
-		)
-		linux_util.run_as_user(
-			"ubuntu",
-			['echo "   avoid_t_collision: false" >> /home/ubuntu/.ros/conf.yaml'],
-			cwd="/home/ubuntu/",
-			check=True,
-		)
-		linux_util.run_as_user(
-			"ubuntu",
-			['echo "params:" >> /home/ubuntu/.ros/conf.yaml'],
-			cwd="/home/ubuntu/",
-			check=True,
-		)
-		linux_util.run_as_user(
-			"ubuntu",
-			['echo "  debug_mode: off" >> /home/ubuntu/.ros/conf.yaml'],
-			cwd="/home/ubuntu/",
-			check=True,
-		)
-		linux_util.run_as_user(
-			"ubuntu",
-			['echo "  movement_node: smooth" >> /home/ubuntu/.ros/conf.yaml'],
-			cwd="/home/ubuntu/",
-			check=True,
-		)
+		subprocess.run("chown -R ubuntu:ubuntu /home/ubuntu", shell=True, check=True, executable='/bin/bash')
+		subprocess.run('echo "move_smooth:" >> /home/ubuntu/.ros/conf.yaml', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('echo "   avoid_t_collision: false" >> /home/ubuntu/.ros/conf.yaml', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('echo "params:" >> /home/ubuntu/.ros/conf.yaml', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('echo "  debug_mode: off" >> /home/ubuntu/.ros/conf.yaml', shell=True, check=True, executable='/bin/bash')
+		subprocess.run('echo "  movement_node: smooth" >> /home/ubuntu/.ros/conf.yaml', shell=True, check=True, executable='/bin/bash')
+		subprocess.run("sudo chown ubuntu:ubuntu /home/ubuntu/.ros/conf.yaml", shell=True, check=True, executable='/bin/bash')
+		
 		
 		#add channel and band lines to the /etc/pifi/default_ap.em
 		subprocess.run('chown -R ubuntu:ubuntu /etc/pifi', shell=True, check=True, executable='/bin/bash')
