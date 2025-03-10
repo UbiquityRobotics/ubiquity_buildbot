@@ -212,7 +212,7 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 		with open("/etc/pifi/default_ap.em", "w") as f:
 			f.write(content)
 
-		os.mkdir('/home/ubuntu/hard_drive)
+		os.mkdir('/home/ubuntu/hard_drive')
 		subprocess.run("echo '/dev/sda1 /home/ubuntu/hard_drive ntfs defaults 0 0' | sudo tee -a /etc/fstab")
 		
 		return
