@@ -214,5 +214,7 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 
 		os.mkdir('/home/ubuntu/hard_drive')
 		subprocess.run("echo '/dev/sda1 /home/ubuntu/hard_drive ntfs defaults 0 0' | sudo tee -a /etc/fstab")
+
+		shutil.copy("files/PLDM_2016.pdf", "/home/ubuntu/.ros/PLDM_2016.pdf")
 		
 		return
