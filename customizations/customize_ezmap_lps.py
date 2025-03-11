@@ -212,6 +212,6 @@ Address=192.168.42.125/24' > /etc/systemd/network/10-eth-dhcp.network\"""", shel
 		with open("/etc/pifi/default_ap.em", "w") as f:
 			f.write(content)
 
-		shutil.copy("files/PLDM_2016.pdf", "/home/ubuntu/.ros/PLDM_2016.pdf")
+		shutil.copy("/files/PLDM_2016.pdf", "/home/ubuntu/.ros/PLDM_2016.pdf")
 		
 		return
