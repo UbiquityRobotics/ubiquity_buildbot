@@ -1,4 +1,5 @@
-- hosts: all
+- hosts: 127.0.0.1
+  connection: localt
   handlers:
   - name: restart nginx
     service: name=nginx state=restarted
@@ -15,21 +16,19 @@
     become_user: root
     become_method: sudo
   - name: Load docker_image
-    docker_image:
+    community.docker.docker_image:
       name: registry.digitalocean.com/ubiquityrobotics/ubiquity_buildbot:latest
-      pull: true
-      force: true
-    become: yes
-    become_user: root
-    become_method: sudo
+      source: pull 
+      force_source: true
   - name: Start the docker_container
-    docker_container:
+    community.docker.docker_container:
       name: buildbot
       image: registry.digitalocean.com/ubiquityrobotics/ubiquity_buildbot:latest
       volumes:
         - /opt/buildbot/buildwork:/buildwork
         - /opt/buildbot/creds:/creds
         - /etc/letsencrypt/:/certs
+        - /opt/buildbot:/auth
       restart_policy: unless-stopped
       restart: yes
       network_mode: host
