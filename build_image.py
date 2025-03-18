@@ -139,15 +139,26 @@ def main():
         # opening the build_info.yaml with r+ so we read, write and prepend new stuff 
         with open(conf["rootfs"]+"/home/ubuntu/build_info.yaml", "r+") as f:
             build_info = yaml.safe_load(f)
-            print("root fs build date: "+str(build_info["rootfs_build_date"]))
-            d_days = datetime.today().date()-build_info["rootfs_build_date"]
-            if d_days.days > 7:
-                print("WARNING: the rootfs was built "+str(d_days.days)+" days ago")
-
-            # add the image build date
-            d = {"image_build_date": datetime.today().date(),
-                 "image_name": image}
-            d = yaml.dump(d, f)
+            # Parse the rootfs build date and time
+            rootfs_build_datetime = datetime.combine(build_info["rootfs_build_date"], datetime.min.time())
+            print(f"Root fs build date and time: {rootfs_build_datetime}")
+            
+            # Calculate the difference including hours
+            time_difference = datetime.now() - rootfs_build_datetime
+            days = time_difference.days
+            hours = time_difference.seconds // 3600
+            
+            if days > 7 or (days == 7 and hours > 0):
+                print(f"WARNING: the rootfs was built {days} days and {hours} hours ago")
+            
+            # Add the image build date and time
+            current_datetime = datetime.now()
+            d = {
+                "image_build_datetime": current_datetime,
+                "image_name": image
+            }
+            yaml.dump(d, f)
+            print(f"Image build date and time: {current_datetime}")
     except Exception as e:
         print("Something wrong with reading "+conf["rootfs"]+"/home/ubuntu/build_info.yaml")
         print(e)
