@@ -55,7 +55,9 @@ This should be removed once Ubuntu adds its own rpi rev 1.5 fixes
 def apply_rpi_rev_15_fix():
     file_path = os.path.dirname(os.path.realpath(__file__))
     print("Applying rev 1.5 fix for raspebrry pi")
-    subprocess.run("cp "+file_path+"/files/boot_files/* " + conf["rootfs"]+"/boot/", shell=True, check=True)
+    #I added in this place to copy files from the pi4 folder insted od the files folder
+    #subprocess.run("cp "+file_path+"/files/boot_files/* " + conf["rootfs"]+"/boot/", shell=True, check=True)
+    subprocess.run("cp "+file_path+"/pi4/* " + conf["rootfs"]+"/boot/", shell=True, check=True)
 #/////////////////////////////////////////////////
     # Add any Pi 5 specific files here
     #subprocess.run(f"cp {file_path}/files/pi5_boot_files/* {conf['rootfs']}/boot/", shell=True, check=True)
