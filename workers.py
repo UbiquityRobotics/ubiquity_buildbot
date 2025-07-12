@@ -17,62 +17,93 @@ workers = []
 #workers.append(worker.Worker("dancer", creds.dancer))
 
 ## AWS based ARM builders
-cloud_init_script ='''#!/bin/bash
+cloud_init_script = '''#!/bin/bash
+
+# Prevent ALL interactive prompts during package installation
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+
+# Configure debconf to use non-interactive mode
+echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+# Pre-configure openssh-server to avoid the configuration prompt
+echo 'openssh-server openssh-server/permit-root-login boolean false' | debconf-set-selections
+
+# Configure dpkg to handle config file conflicts automatically
+cat > /etc/apt/apt.conf.d/50unattended-upgrades-local << EOF
+Dpkg::Options {{
+   "--force-confdef";
+   "--force-confold";
+}}
+EOF
+
+# Enable error handling and logging
+set -e
+exec > >(tee -a /var/log/buildbot-setup.log) 2>&1
+
+echo "Starting buildbot worker setup at $(date)"
 
 sudo apt update
 sudo apt -y upgrade
-sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt -y install debhelper python-setuptools python3-setuptools python3.10-venv curl python3.10-dev python3-venv apt-utils vim htop iotop screen git-buildpackage cowbuilder python3-venv build-essential libssl-dev libffi-dev python-dev ca-certificates qemu-user-static whois
-echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ubuntu
+
+# Install required packages including python3-pip for system-wide install
+sudo apt -y install software-properties-common debhelper python3-setuptools python3-pip curl apt-utils vim htop iotop screen git-buildpackage cowbuilder build-essential libssl-dev libffi-dev python3-dev ca-certificates qemu-user-static whois netcat-openbsd
+
+# Configure sudoers for admin user
+echo 'admin ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/admin
+
+# Create buildbot directory and set ownership
 sudo mkdir -p /var/lib/buildbot
-sudo chown -R ubuntu:ubuntu /var/lib/buildbot
+sudo chown -R admin:admin /var/lib/buildbot
 cd /var/lib/buildbot
 
-sudo apt install -y python3.10-venv
+# Install buildbot-worker system-wide with --break-system-packages
+sudo pip3 install --break-system-packages --upgrade pip
+sudo pip3 install --break-system-packages buildbot-worker[tls] pyOpenSSL service_identity
 
-python3.10 -m venv sandbox
-source sandbox/bin/activate
-sudo chown -R ubuntu:ubuntu /var/lib/buildbot/sandbox/
-pip install --upgrade pip
-pip install buildbot-worker[tls]
-pip install pyOpenSSL
-pip install service_identity
+echo "Testing connectivity to master..."
+if ! nc -zv build.ubiquityrobotics.com 9989; then
+    echo "WARNING: Cannot connect to buildbot master"
+fi
 
->&2 echo "Configuring buildbot"
-cd /var/lib/buildbot
-sudo -u ubuntu bash -c '. sandbox/bin/activate; buildbot-worker create-worker --use-tls --maxretries 10 worker build.ubiquityrobotics.com {} "{}"'
+echo "Configuring buildbot worker..."
+sudo -u admin bash -c 'buildbot-worker create-worker --use-tls --maxretries 10 worker build.ubiquityrobotics.com {} "{}"'
 
-sudo sh -c "cat <<EOM >/etc/systemd/system/buildbot-worker.service
-# This template file assumes the buildbot worker lives in a subdirectory od
-# /var/lib/buildbot
-# Usage:
-#   cd /var/lib/buildbot
-#   buildbot-worker create-worker [directory] [master hostname] [name] [password]
-#   systemctl enable --now buildbot-worker@[directory].service
+# Create systemd service
+sudo tee /etc/systemd/system/buildbot-worker.service > /dev/null <<EOF
 [Unit]
 Description=Buildbot Worker
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-User=ubuntu
-Group=ubuntu
+Type=simple
+User=admin
+Group=admin
 WorkingDirectory=/var/lib/buildbot/
-ExecStart=/var/lib/buildbot/sandbox/bin/buildbot-worker start --nodaemon worker
-# if using EC2 Latent worker, you want to uncomment following line, and comment out the Restart line
-#ExecStopPost=sudo shutdown now
+Environment=HOME=/var/lib/buildbot
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/buildbot-worker start --nodaemon worker
+Restart=always
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
-EOM"
+EOF
 
-echo "Luka Kidric <lk@ubiquityrobotics.com>" >/var/lib/buildbot/worker/info/admin
-echo "AWS {}" >/var/lib/buildbot/worker/info/host
+# Set up info files
+mkdir -p /var/lib/buildbot/worker/info
+echo "Luka Kidric <lk@ubiquityrobotics.com>" > /var/lib/buildbot/worker/info/admin
+echo "AWS $(hostname)" > /var/lib/buildbot/worker/info/host
+sudo chown -R admin:admin /var/lib/buildbot/worker/info/
 
+# Enable and start service
+sudo systemctl daemon-reload
 sudo systemctl enable buildbot-worker.service
 sudo systemctl start buildbot-worker.service
 
-cd /var/lib/buildbot
-source sandbox/bin/activate
+echo "Setup completed at $(date)"
+echo "Check status with: sudo systemctl status buildbot-worker.service"
 '''
 
 boron_cloud_init_script = cloud_init_script.format("boron", creds.boron, "m6g.medium")
@@ -90,35 +121,34 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
                     user_data=boron_cloud_init_script,
                     block_device_map= [
                         {
-                            "DeviceName": "/dev/sda1",
+                            "DeviceName": "/dev/xvda1",
                             "Ebs" : {
-                                "VolumeType": "gp2",
-                                "VolumeSize": 50,
+                                "VolumeType": "gp3",
+                                "VolumeSize": 60,
                                 "DeleteOnTermination": True
                             }
                         }
                     ]
 ))
 
-beryllium_cloud_init_script = cloud_init_script.format("beryllium", creds.beryllium, "m6g.medium")
-workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 'm6g.medium', 
+beryllium_cloud_init_script = cloud_init_script.format("beryllium", creds.beryllium, "t4g.xlarge")
+workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 't4g.xlarge', 
                     region="us-east-2",
-                    ami="ami-039e419d24a37cb82", 
+                    ami="ami-009dbf7acf984fc41", 
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
-                    keypair_name='awsBuildbots', 
-                    security_name="awsBuildbots", 
+                    keypair_name='pi5key',
+                    security_name="pi5key",
                     #spot_instance=True,
                     #max_spot_price=0.02,
                     #price_multiplier=None,
-                    max_builds=1,
                     user_data=beryllium_cloud_init_script,
                     block_device_map= [
                         {
-                            "DeviceName": "/dev/sda1",
+                            "DeviceName": "/dev/xvda",
                             "Ebs" : {
-                                "VolumeType": "gp2",
-                                "VolumeSize": 50,
+                                "VolumeType": "gp3",
+                                "VolumeSize": 60,
                                 "DeleteOnTermination": True
                             }
                         }
