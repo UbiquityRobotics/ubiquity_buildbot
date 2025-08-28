@@ -106,14 +106,14 @@ echo "Setup completed at $(date)"
 echo "Check status with: sudo systemctl status buildbot-worker.service"
 '''
 
-boron_cloud_init_script = cloud_init_script.format("boron", creds.boron, "m6g.medium")
-workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium', 
+boron_cloud_init_script = cloud_init_script.format("boron", creds.boron, "t4g.xlarge")
+workers.append(worker.EC2LatentWorker("boron", creds.boron, 't4g.xlarge', 
                     region="us-east-2",
-                    ami="ami-039e419d24a37cb82", 
+                    ami="ami-009dbf7acf984fc41", 
                     identifier=creds.awsPub, 
                     secret_identifier=creds.awsPriv, 
-                    keypair_name='test', 
-                    security_name="test",
+                    keypair_name='pi5key', 
+                    security_name="pi5key",
                     #spot_instance=True,
                     #max_spot_price=0.02,
                     #price_multiplier=None,
@@ -121,10 +121,10 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 'm6g.medium',
                     user_data=boron_cloud_init_script,
                     block_device_map= [
                         {
-                            "DeviceName": "/dev/xvda1",
+                            "DeviceName": "/dev/xvda",
                             "Ebs" : {
                                 "VolumeType": "gp3",
-                                "VolumeSize": 55,
+                                "VolumeSize": 70,
                                 "DeleteOnTermination": True
                             }
                         }
@@ -148,7 +148,7 @@ workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 't4g.xlarge'
                             "DeviceName": "/dev/xvda",
                             "Ebs" : {
                                 "VolumeType": "gp3",
-                                "VolumeSize": 70,
+                                "VolumeSize": 60,
                                 "DeleteOnTermination": True
                             }
                         }
