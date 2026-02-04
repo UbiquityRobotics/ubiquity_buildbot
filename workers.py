@@ -71,6 +71,15 @@ echo "AWS {}" >/var/lib/buildbot/worker/info/host
 sudo systemctl enable buildbot-worker.service
 sudo systemctl start buildbot-worker.service
 
+# Manually inject the SSH key for the ubuntu user
+mkdir -p /home/ubuntu/.ssh
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTLV/yxi26viVUrnOmvbhMMZYYgxg2GQS6ztPHoCAdIDzXIPljQIXCRUT2gB8zmEm2vOcoig4QNWkCkoWgWqDUwDejIpUAn2tIFR52XhrKRgWpzC0p174GoEcRyDcXpXOBs57aGmOUeMcovOQ8d5O+1ju4bUliS61ZDxnn3OE3c/ksgXZiZ9wEk22DxDjBV2b1s4qTOCgd/MqgBtSZF7NSFONYZ5qh3Q1QsjQq5PCAO1WXpR+88SSavKZHGNyXlBulUaRFo34FfEQg02oC5HPHWjLJUXRSChEHeW+xnJw8ZqGb5aisVR8vPlWB9tSkV5q1wdoTb0Q/DHmogA2LLPzfwvET5wNZRxW7wdHyjsQCNO/8Y2teEf9iXOebtPPBI0K46/cVfMj+2yGsRvds3+n4ZEoWvcC4syM8KMS/dNQ/Q3C8D026zKWPAzgA/FrItk+yu7s6RBYTyUZyLhDbbdq4ZY+B4Cl69+lMPNVl0uzG7spWlZmme7CGj4Z/2mw102qbJFphGSu9AIWVeipV3PWNOPENWgPUdnb5h8DNF7zsNVQwjVpqfEtfv43SnMGO5CQjZoSTey1s+gSc6dvh113rK0+ShvNaj5RXV+scvT3WJTnOGeUaOgcFIwNq/hKNurIC+uHOzXPA4yG/t2yWln9o3u8XnZdBycj+aYkiAHAl5w== michael@michael-HYM-WXX" >> /home/ubuntu/.ssh/authorized_keys
+
+# Set correct permissions
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh
+chmod 700 /home/ubuntu/.ssh
+chmod 600 /home/ubuntu/.ssh/authorized_keys
+
 cd /var/lib/buildbot
 source sandbox/bin/activate
 '''
