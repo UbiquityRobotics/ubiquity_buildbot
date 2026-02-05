@@ -57,9 +57,14 @@ sudo mkdir -p /var/lib/buildbot
 sudo chown -R admin:admin /var/lib/buildbot
 cd /var/lib/buildbot
 
-# Install buildbot-worker system-wide with --break-system-packages
-sudo pip3 install --break-system-packages --upgrade pip
-sudo pip3 install --break-system-packages buildbot-worker[tls] pyOpenSSL service_identity
+# Install buildbot-worker system-wide
+# Try with --break-system-packages (for newer OS/pip), fallback to without (for older OS/pip)
+if sudo pip3 install --break-system-packages --upgrade pip; then
+    sudo pip3 install --break-system-packages buildbot-worker[tls] pyOpenSSL service_identity
+else
+    sudo pip3 install --upgrade pip
+    sudo pip3 install buildbot-worker[tls] pyOpenSSL service_identity
+fi
 
 echo "Testing connectivity to master..."
 if ! nc -zv build.ubiquityrobotics.com 9989; then

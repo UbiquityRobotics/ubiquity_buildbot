@@ -1,5 +1,1 @@
-<<<<<<< HEAD
-build.ubiquityrobotics.com ansible_user=root
-=======
-localhost ansible_user=root
->>>>>>> test
+127.0.0.1 ansible_user=root
