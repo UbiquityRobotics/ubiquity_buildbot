@@ -19,13 +19,20 @@ workers = []
 ## AWS based ARM builders
 cloud_init_script = '''#!/bin/bash
 
-# Manually inject the SSH key for the ubuntu user EARLY (for debugging)
-sudo mkdir -p /home/ubuntu/.ssh
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTLV/yxi26viVUrnOmvbhMMZYYgxg2GQS6ztPHoCAdIDzXIPljQIXCRUT2gB8zmEm2vOcoig4QNWkCkoWgWqDUwDejIpUAn2tIFR52XhrKRgWpzC0p174GoEcRyDcXpXOBs57aGmOUeMcovOQ8d5O+1ju4bUliS61ZDxnn3OE3c/ksgXZiZ9wEk22DxDjBV2b1s4qTOCgd/MqgBtSZF7NSFONYZ5qh3Q1QsjQq5PCAO1WXpR+88SSavKZHGNyXlBulUaRFo34FfEQg02oC5HPHWjLJUXRSChEHeW+xnJw8ZqGb5aisVR8vPlWB9tSkV5q1wdoTb0Q/DHmogA2LLPzfwvET5wNZRxW7wdHyjsQCNO/8Y2teEf9iXOebtPPBI0K46/cVfMj+2yGsRvds3+n4ZEoWvcC4syM8KMS/dNQ/Q3C8D026zKWPAzgA/FrItk+yu7s6RBYTyUZyLhDbbdq4ZY+B4Cl69+lMPNVl0uzG7spWlZmme7CGj4Z/2mw102qbJFphGSu9AIWVeipV3PWNOPENWgPUdnb5h8DNF7zsNVQwjVpqfEtfv43SnMGO5CQjZoSTey1s+gSc6dvh113rK0+ShvNaj5RXV+scvT3WJTnOGeUaOgcFIwNq/hKNurIC+uHOzXPA4yG/t2yWln9o3u8XnZdBycj+aYkiAHAl5w== michael@michael-HYM-WXX" | sudo tee -a /home/ubuntu/.ssh/authorized_keys
-# Set correct permissions
-sudo chown -R ubuntu:ubuntu /home/ubuntu/.ssh
-sudo chmod 700 /home/ubuntu/.ssh
-sudo chmod 600 /home/ubuntu/.ssh/authorized_keys
+# 1. Inject SSH key for ROOT user (Fallback)
+mkdir -p /root/.ssh
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTLV/yxi26viVUrnOmvbhMMZYYgxg2GQS6ztPHoCAdIDzXIPljQIXCRUT2gB8zmEm2vOcoig4QNWkCkoWgWqDUwDejIpUAn2tIFR52XhrKRgWpzC0p174GoEcRyDcXpXOBs57aGmOUeMcovOQ8d5O+1ju4bUliS61ZDxnn3OE3c/ksgXZiZ9wEk22DxDjBV2b1s4qTOCgd/MqgBtSZF7NSFONYZ5qh3Q1QsjQq5PCAO1WXpR+88SSavKZHGNyXlBulUaRFo34FfEQg02oC5HPHWjLJUXRSChEHeW+xnJw8ZqGb5aisVR8vPlWB9tSkV5q1wdoTb0Q/DHmogA2LLPzfwvET5wNZRxW7wdHyjsQCNO/8Y2teEf9iXOebtPPBI0K46/cVfMj+2yGsRvds3+n4ZEoWvcC4syM8KMS/dNQ/Q3C8D026zKWPAzgA/FrItk+yu7s6RBYTyUZyLhDbbdq4ZY+B4Cl69+lMPNVl0uzG7spWlZmme7CGj4Z/2mw102qbJFphGSu9AIWVeipV3PWNOPENWgPUdnb5h8DNF7zsNVQwjVpqfEtfv43SnMGO5CQjZoSTey1s+gSc6dvh113rK0+ShvNaj5RXV+scvT3WJTnOGeUaOgcFIwNq/hKNurIC+uHOzXPA4yG/t2yWln9o3u8XnZdBycj+aYkiAHAl5w== michael@michael-HYM-WXX" >> /root/.ssh/authorized_keys
+chmod 700 /root/.ssh
+chmod 600 /root/.ssh/authorized_keys
+
+# 2. Inject SSH key for UBUNTU user (Primary)
+# Ensure home dir exists (in case user created later)
+mkdir -p /home/ubuntu/.ssh
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTLV/yxi26viVUrnOmvbhMMZYYgxg2GQS6ztPHoCAdIDzXIPljQIXCRUT2gB8zmEm2vOcoig4QNWkCkoWgWqDUwDejIpUAn2tIFR52XhrKRgWpzC0p174GoEcRyDcXpXOBs57aGmOUeMcovOQ8d5O+1ju4bUliS61ZDxnn3OE3c/ksgXZiZ9wEk22DxDjBV2b1s4qTOCgd/MqgBtSZF7NSFONYZ5qh3Q1QsjQq5PCAO1WXpR+88SSavKZHGNyXlBulUaRFo34FfEQg02oC5HPHWjLJUXRSChEHeW+xnJw8ZqGb5aisVR8vPlWB9tSkV5q1wdoTb0Q/DHmogA2LLPzfwvET5wNZRxW7wdHyjsQCNO/8Y2teEf9iXOebtPPBI0K46/cVfMj+2yGsRvds3+n4ZEoWvcC4syM8KMS/dNQ/Q3C8D026zKWPAzgA/FrItk+yu7s6RBYTyUZyLhDbbdq4ZY+B4Cl69+lMPNVl0uzG7spWlZmme7CGj4Z/2mw102qbJFphGSu9AIWVeipV3PWNOPENWgPUdnb5h8DNF7zsNVQwjVpqfEtfv43SnMGO5CQjZoSTey1s+gSc6dvh113rK0+ShvNaj5RXV+scvT3WJTnOGeUaOgcFIwNq/hKNurIC+uHOzXPA4yG/t2yWln9o3u8XnZdBycj+aYkiAHAl5w== michael@michael-HYM-WXX" >> /home/ubuntu/.ssh/authorized_keys
+# Try to set ownership, but don't fail if user doesn't exist yet
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh || true
+chmod 700 /home/ubuntu/.ssh
+chmod 600 /home/ubuntu/.ssh/authorized_keys
 
 # Prevent ALL interactive prompts during package installation
 export DEBIAN_FRONTEND=noninteractive
