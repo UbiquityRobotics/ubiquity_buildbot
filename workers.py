@@ -143,7 +143,7 @@ workers.append(worker.EC2LatentWorker("boron", creds.boron, 't4g.xlarge',
                             "DeviceName": "/dev/xvda",
                             "Ebs" : {
                                 "VolumeType": "gp3",
-                                "VolumeSize": 70,
+                                "VolumeSize": 80,
                                 "DeleteOnTermination": True
                             }
                         }
@@ -167,7 +167,7 @@ workers.append(worker.EC2LatentWorker("beryllium", creds.beryllium, 't4g.xlarge'
                             "DeviceName": "/dev/xvda",
                             "Ebs" : {
                                 "VolumeType": "gp3",
-                                "VolumeSize": 60,
+                                "VolumeSize": 80,
                                 "DeleteOnTermination": True
                             }
                         }
