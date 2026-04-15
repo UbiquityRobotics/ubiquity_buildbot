@@ -18,21 +18,12 @@ workers = []
 
 ## AWS based ARM builders
 cloud_init_script = '''#!/bin/bash
+set -e
 
-# 1. Inject SSH key for ROOT user (Fallback)
-mkdir -p /root/.ssh
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTLV/yxi26viVUrnOmvbhMMZYYgxg2GQS6ztPHoCAdIDzXIPljQIXCRUT2gB8zmEm2vOcoig4QNWkCkoWgWqDUwDejIpUAn2tIFR52XhrKRgWpzC0p174GoEcRyDcXpXOBs57aGmOUeMcovOQ8d5O+1ju4bUliS61ZDxnn3OE3c/ksgXZiZ9wEk22DxDjBV2b1s4qTOCgd/MqgBtSZF7NSFONYZ5qh3Q1QsjQq5PCAO1WXpR+88SSavKZHGNyXlBulUaRFo34FfEQg02oC5HPHWjLJUXRSChEHeW+xnJw8ZqGb5aisVR8vPlWB9tSkV5q1wdoTb0Q/DHmogA2LLPzfwvET5wNZRxW7wdHyjsQCNO/8Y2teEf9iXOebtPPBI0K46/cVfMj+2yGsRvds3+n4ZEoWvcC4syM8KMS/dNQ/Q3C8D026zKWPAzgA/FrItk+yu7s6RBYTyUZyLhDbbdq4ZY+B4Cl69+lMPNVl0uzG7spWlZmme7CGj4Z/2mw102qbJFphGSu9AIWVeipV3PWNOPENWgPUdnb5h8DNF7zsNVQwjVpqfEtfv43SnMGO5CQjZoSTey1s+gSc6dvh113rK0+ShvNaj5RXV+scvT3WJTnOGeUaOgcFIwNq/hKNurIC+uHOzXPA4yG/t2yWln9o3u8XnZdBycj+aYkiAHAl5w== michael@michael-HYM-WXX" >> /root/.ssh/authorized_keys
-chmod 700 /root/.ssh
-chmod 600 /root/.ssh/authorized_keys
+# Enable error handling and logging immediately
+exec > >(tee -a /var/log/buildbot-setup.log) 2>&1
 
-# 2. Inject SSH key for UBUNTU user (Primary)
-# Ensure home dir exists (in case user created later)
-mkdir -p /home/ubuntu/.ssh
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTLV/yxi26viVUrnOmvbhMMZYYgxg2GQS6ztPHoCAdIDzXIPljQIXCRUT2gB8zmEm2vOcoig4QNWkCkoWgWqDUwDejIpUAn2tIFR52XhrKRgWpzC0p174GoEcRyDcXpXOBs57aGmOUeMcovOQ8d5O+1ju4bUliS61ZDxnn3OE3c/ksgXZiZ9wEk22DxDjBV2b1s4qTOCgd/MqgBtSZF7NSFONYZ5qh3Q1QsjQq5PCAO1WXpR+88SSavKZHGNyXlBulUaRFo34FfEQg02oC5HPHWjLJUXRSChEHeW+xnJw8ZqGb5aisVR8vPlWB9tSkV5q1wdoTb0Q/DHmogA2LLPzfwvET5wNZRxW7wdHyjsQCNO/8Y2teEf9iXOebtPPBI0K46/cVfMj+2yGsRvds3+n4ZEoWvcC4syM8KMS/dNQ/Q3C8D026zKWPAzgA/FrItk+yu7s6RBYTyUZyLhDbbdq4ZY+B4Cl69+lMPNVl0uzG7spWlZmme7CGj4Z/2mw102qbJFphGSu9AIWVeipV3PWNOPENWgPUdnb5h8DNF7zsNVQwjVpqfEtfv43SnMGO5CQjZoSTey1s+gSc6dvh113rK0+ShvNaj5RXV+scvT3WJTnOGeUaOgcFIwNq/hKNurIC+uHOzXPA4yG/t2yWln9o3u8XnZdBycj+aYkiAHAl5w== michael@michael-HYM-WXX" >> /home/ubuntu/.ssh/authorized_keys
-# Try to set ownership, but don't fail if user doesn't exist yet
-chown -R ubuntu:ubuntu /home/ubuntu/.ssh || true
-chmod 700 /home/ubuntu/.ssh
-chmod 600 /home/ubuntu/.ssh/authorized_keys
+echo "Starting buildbot worker setup at $(date)"
 
 # Prevent ALL interactive prompts during package installation
 export DEBIAN_FRONTEND=noninteractive
@@ -40,8 +31,6 @@ export NEEDRESTART_MODE=a
 
 # Configure debconf to use non-interactive mode
 echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-
-# Pre-configure openssh-server to avoid the configuration prompt
 echo 'openssh-server openssh-server/permit-root-login boolean false' | debconf-set-selections
 
 # Configure dpkg to handle config file conflicts automatically
@@ -52,33 +41,48 @@ Dpkg::Options {{
 }}
 EOF
 
-# Enable error handling and logging
-set -e
-exec > >(tee -a /var/log/buildbot-setup.log) 2>&1
-
-echo "Starting buildbot worker setup at $(date)"
-
-sudo apt update
-sudo apt -y upgrade
-
-# Install required packages including python3-pip for system-wide install
-sudo apt -y install software-properties-common debhelper python3-setuptools python3-pip curl apt-utils vim htop iotop screen git-buildpackage cowbuilder build-essential libssl-dev libffi-dev python3-dev ca-certificates qemu-user-static whois netcat-openbsd
-
-# Configure sudoers for admin user
-echo 'admin ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/admin
-# Create buildbot directory and set ownership
-sudo mkdir -p /var/lib/buildbot
-sudo chown -R admin:admin /var/lib/buildbot
-cd /var/lib/buildbot
-
-# Install buildbot-worker system-wide
-# Try with --break-system-packages (for newer OS/pip), fallback to without (for older OS/pip)
-if sudo pip3 install --break-system-packages --upgrade pip; then
-    sudo pip3 install --break-system-packages buildbot-worker[tls] pyOpenSSL service_identity
-else
-    sudo pip3 install --upgrade pip
-    sudo pip3 install buildbot-worker[tls] pyOpenSSL service_identity
+# 1. Ensure 'admin' user exists and is configured for sudo (Primary Worker User)
+if ! id -u admin > /dev/null 2>&1; then
+    useradd -m -s /bin/bash admin
 fi
+echo 'admin ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/admin
+chmod 440 /etc/sudoers.d/admin
+
+# 2. Inject SSH keys
+mkdir -p /root/.ssh /home/admin/.ssh /home/ubuntu/.ssh 2>/dev/null || true
+
+SSH_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTLV/yxi26viVUrnOmvbhMMZYYgxg2GQS6ztPHoCAdIDzXIPljQIXCRUT2gB8zmEm2vOcoig4QNWkCkoWgWqDUwDejIpUAn2tIFR52XhrKRgWpzC0p174GoEcRyDcXpXOBs57aGmOUeMcovOQ8d5O+1ju4bUliS61ZDxnn3OE3c/ksgXZiZ9wEk22DxDjBV2b1s4qTOCgd/MqgBtSZF7NSFONYZ5qh3Q1QsjQq5PCAO1WXpR+88SSavKZHGNyXlBulUaRFo34FfEQg02oC5HPHWjLJUXRSChEHeW+xnJw8ZqGb5aisVR8vPlWB9tSkV5q1wdoTb0Q/DHmogA2LLPzfwvET5wNZRxW7wdHyjsQCNO/8Y2teEf9iXOebtPPBI0K46/cVfMj+2yGsRvds3+n4ZEoWvcC4syM8KMS/dNQ/Q3C8D026zKWPAzgA/FrItk+yu7s6RBYTyUZyLhDbbdq4ZY+B4Cl69+lMPNVl0uzG7spWlZmme7CGj4Z/2mw102qbJFphGSu9AIWVeipV3PWNOPENWgPUdnb5h8DNF7zsNVQwjVpqfEtfv43SnMGO5CQjZoSTey1s+gSc6dvh113rK0+ShvNaj5RXV+scvT3WJTnOGeUaOgcFIwNq/hKNurIC+uHOzXPA4yG/t2yWln9o3u8XnZdBycj+aYkiAHAl5w== michael@michael-HYM-WXX"
+
+echo "$SSH_KEY" >> /root/.ssh/authorized_keys
+chmod 700 /root/.ssh; chmod 600 /root/.ssh/authorized_keys
+
+echo "$SSH_KEY" >> /home/admin/.ssh/authorized_keys
+chown -R admin:admin /home/admin/.ssh
+chmod 700 /home/admin/.ssh; chmod 600 /home/admin/.ssh/authorized_keys
+
+# Fallback for Ubuntu AMIs backward compatibility
+if id -u ubuntu > /dev/null 2>&1; then
+    echo "$SSH_KEY" >> /home/ubuntu/.ssh/authorized_keys
+    chown -R ubuntu:ubuntu /home/ubuntu/.ssh
+    chmod 700 /home/ubuntu/.ssh; chmod 600 /home/ubuntu/.ssh/authorized_keys
+fi
+
+# Update packages safely
+apt-get update
+apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+
+# Install required packages (using python3-venv to avoid PEP 668)
+apt-get -y install software-properties-common debhelper python3-setuptools python3-venv python3-pip curl apt-utils vim htop iotop screen git-buildpackage cowbuilder build-essential libssl-dev libffi-dev python3-dev ca-certificates qemu-user-static whois netcat-openbsd
+
+# Create buildbot directory and set ownership
+mkdir -p /var/lib/buildbot
+chown -R admin:admin /var/lib/buildbot
+
+# Set up Python virtual environment for buildbot-worker to avoid system pip conflicts
+sudo -u admin python3 -m venv /var/lib/buildbot/venv
+sudo -u admin /var/lib/buildbot/venv/bin/pip install --upgrade pip
+# Pin worker to 2.10.5 to exactly match the master server's protocol
+sudo -u admin /var/lib/buildbot/venv/bin/pip install buildbot-worker[tls]==2.10.5 pyOpenSSL service_identity
 
 echo "Testing connectivity to master..."
 if ! nc -zv build.ubiquityrobotics.com 9989; then
@@ -86,10 +90,10 @@ if ! nc -zv build.ubiquityrobotics.com 9989; then
 fi
 
 echo "Configuring buildbot worker..."
-sudo -u admin bash -c 'buildbot-worker create-worker --use-tls --maxretries 10 worker build.ubiquityrobotics.com {} "{}"'
+sudo -u admin bash -c '/var/lib/buildbot/venv/bin/buildbot-worker create-worker --use-tls --maxretries 10 /var/lib/buildbot/worker build.ubiquityrobotics.com {} "{}"'
 
-# Create systemd service
-sudo tee /etc/systemd/system/buildbot-worker.service > /dev/null <<EOF
+# Create systemd service using the venv executable
+cat > /etc/systemd/system/buildbot-worker.service <<EOF
 [Unit]
 Description=Buildbot Worker
 After=network-online.target
@@ -101,8 +105,7 @@ User=admin
 Group=admin
 WorkingDirectory=/var/lib/buildbot/
 Environment=HOME=/var/lib/buildbot
-Environment=PATH=/usr/local/bin:/usr/bin:/bin
-ExecStart=/usr/local/bin/buildbot-worker start --nodaemon worker
+ExecStart=/var/lib/buildbot/venv/bin/buildbot-worker start --nodaemon /var/lib/buildbot/worker
 Restart=always
 RestartSec=30
 
@@ -113,15 +116,15 @@ EOF
 # Set up info files
 mkdir -p /var/lib/buildbot/worker/info
 echo "Luka Kidric <lk@ubiquityrobotics.com>" > /var/lib/buildbot/worker/info/admin
-echo "AWS $(hostname)" > /var/lib/buildbot/worker/info/host
-sudo chown -R admin:admin /var/lib/buildbot/worker/info/
+echo "AWS \$(hostname)" > /var/lib/buildbot/worker/info/host
+chown -R admin:admin /var/lib/buildbot/worker/info/
 
 # Enable and start service
-sudo systemctl daemon-reload
-sudo systemctl enable buildbot-worker.service
-sudo systemctl start buildbot-worker.service
+systemctl daemon-reload
+systemctl enable buildbot-worker.service
+systemctl start buildbot-worker.service
 
-echo "Setup completed at $(date)"
+echo "Setup completed at \$(date)"
 echo "Check status with: sudo systemctl status buildbot-worker.service"
 '''
 
@@ -213,4 +216,3 @@ workers_for_arch = {
     'amd64' : amd64_workers,
     'arm64' : arm64_workers
 }
-
