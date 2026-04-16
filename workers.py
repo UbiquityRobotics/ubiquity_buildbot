@@ -72,7 +72,7 @@ apt-get update
 apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
 
 # Install required packages (using python3-venv to avoid PEP 668)
-apt-get -y install software-properties-common debhelper python3-setuptools python3-venv python3-pip curl apt-utils vim htop iotop screen git-buildpackage cowbuilder build-essential libssl-dev libffi-dev python3-dev ca-certificates qemu-user-static whois netcat-openbsd
+apt-get -y install software-properties-common debhelper python3-setuptools python3-venv python3-pip curl apt-utils vim htop iotop screen git-buildpackage cowbuilder build-essential libssl-dev libffi-dev python3-dev ca-certificates qemu-user-static whois netcat-openbsd dbus-x11
 
 # Create buildbot directory and set ownership
 mkdir -p /var/lib/buildbot
