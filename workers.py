@@ -18,9 +18,8 @@ workers = []
 
 ## AWS based ARM builders
 cloud_init_script = '''#!/bin/bash
-set -e
 
-# Enable error handling and logging immediately
+# Enable logging immediately
 exec > >(tee -a /var/log/buildbot-setup.log) 2>&1
 
 echo "Starting buildbot worker setup at $(date)"
@@ -28,6 +27,16 @@ echo "Starting buildbot worker setup at $(date)"
 # Prevent ALL interactive prompts during package installation
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
+
+# Kill unattended-upgrades to prevent apt lock contention
+systemctl stop unattended-upgrades 2>/dev/null || true
+systemctl disable unattended-upgrades 2>/dev/null || true
+
+# Wait for any existing apt locks to release
+while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+    echo "Waiting for dpkg lock..."
+    sleep 5
+done
 
 # Configure debconf to use non-interactive mode
 echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
@@ -68,11 +77,11 @@ if id -u ubuntu > /dev/null 2>&1; then
 fi
 
 # Update packages safely
-apt-get update
-apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+apt-get update || true
+apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade || echo "WARNING: upgrade failed, continuing..."
 
 # Install required packages (using python3-venv to avoid PEP 668)
-apt-get -y install software-properties-common debhelper python3-setuptools python3-venv python3-pip curl apt-utils vim htop iotop screen git-buildpackage cowbuilder build-essential libssl-dev libffi-dev python3-dev ca-certificates qemu-user-static whois netcat-openbsd dbus-x11
+apt-get -y install software-properties-common debhelper python3-setuptools python3-venv python3-pip curl apt-utils vim htop iotop screen git-buildpackage cowbuilder build-essential libssl-dev libffi-dev python3-dev ca-certificates qemu-user-static whois netcat-openbsd dbus-x11 || { echo "FATAL: package install failed"; exit 1; }
 
 # Create buildbot directory and set ownership
 mkdir -p /var/lib/buildbot
@@ -190,22 +199,6 @@ workers.append(worker.EC2LatentWorker("prancer", creds.prancer, 'm5.large',
 #                    price_multiplier=None,
                     max_builds=1
 ))
-
-
-# AWS Windows Builder for firmware builds
-#workers.append(worker.EC2LatentWorker("tofu", creds.tofu, 't3a.medium',
-#                    region="us-east-2",
-#                    ami="ami-02e57400f716e673e",
-#                    identifier=creds.awsPub,
-#                    secret_identifier=creds.awsPriv,
-#                    spot_instance=True,
-#                    keypair_name='awsBuildbots',
-#                    security_name="awsBuildbots",
-#                    max_spot_price=0.032,
-#                    price_multiplier=None,
-#                    max_builds=1
-#))
-
 
 armhf_workers = ["boron", "beryllium"]
 arm64_workers = ["boron", "beryllium"]
