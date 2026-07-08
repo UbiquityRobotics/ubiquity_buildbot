@@ -19,8 +19,13 @@ This document evaluates the design problems of our current Buildbot setup and pr
 *   **How to solve:** Migrate the state database from SQLite to a managed PostgreSQL instance on AWS Relational Database Service (RDS). This decouples state from compute, allows automated database backups, and lets us run multiple Master containers behind a load balancer.
 
 ### Monolithic SD Card Disk Image Builds
-*   **The problem:** We rebuild a monolithic 2GB (compressed) SD card disk image using `mmdebstrap` for every single software change (e.g., small modds in any ROS2 node). This is incredibly slow and highly inefficient. It also makes updating robots in the field difficult, as they must re-flash the entire image.
-*   **How to solve:** Split the build system into a two-layer model. Build a thin, static base Ubuntu system image once. Package all ROS 2 nodes, robot control packages, and dependencies as lightweight Docker containers (or Snaps). When developers push code changes, the CI/CD pipeline only builds and tests a small 50MB container in a few seconds. The robots out in the field can pull container updates over-the-air using a management tool like AWS IoT Greengrass or Balena.
+*   **Description of the problem:** We rebuild a monolithic 4GB SD card disk image using `mmdebstrap` for every single software change (e.g., small modifications in `zenoh` or a ROS node). This is incredibly slow and highly inefficient because we are compiling custom code from source inside an emulated QEMU environment during image construction. It also makes updating robots in the field difficult, as they must re-flash the entire image.
+*   **A quick solution proposal:** We should implement a **"Package-First, Image-Second"** pipeline. 
+    1.  **Build Packages Individually:** Instead of compiling code during the image build, each repository (e.g., `move_smooth`, `ezmap`) will compile its code and generate standard Debian packages (`.deb` format) using GitHub Actions.
+    2.  **Publish to our Aptly Repository:** These `.deb` files will be uploaded automatically to our managed Aptly repository (leveraging the existing `aptly_steps.py` infrastructure).
+    3.  **Image Creation as Assembly Only:** The `rpi-image-gen` script will simply register our private Aptly repo as an APT source and run `apt-get install ros-jazzy-move-smooth` inside `mmdebstrap`. 
+    
+    This splits the build process cleanly. Image creation drops from 45 minutes to under 5 minutes because it behaves purely as a packager rather than a compiler. Furthermore, robots in the field can now pull critical software updates via simple `sudo apt update && sudo apt upgrade` rather than requiring a full re-flash or complex container orchestration.
 
 ---
 
