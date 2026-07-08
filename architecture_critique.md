@@ -1,18 +1,18 @@
 # Architecture Critique and Future Enhancements
 
-This document evaluates the long-term design flaws of our current Buildbot setup and proposes modern solutions to transition to a more reliable, orthogonal, and scalable system.
+This document evaluates the design problems of our current Buildbot setup and proposes modern solutions to transition to a more reliable, orthogonal, and scalable system.
 
 ---
 
 ## 1. Architectural Critiques
 
 ### Master/Worker Cloud Distribution (Hybrid Cloud Architecture)
-*   **Description of the problem:** The Buildbot Master runs on DigitalOcean, while the ephemeral Workers are spawned on AWS EC2. This hybrid-cloud setup introduces unnecessary latency, complicates firewall configurations (requires opening ports across different clouds), and incurs substantial external egress bandwidth costs as images are pulled and pushed across providers.
-*   **A quick solution proposal:** Move the Buildbot Master from DigitalOcean to AWS, hosting it inside the same Virtual Private Cloud (VPC) and subnet as the workers. This simplifies security groups, drops communication latency to sub-milliseconds, and keeps all build traffic on AWS's high-speed local network.
+*   **Description of the problem:** The Buildbot Master runs on DigitalOcean, while the ephemeral Workers are spawned on AWS EC2. This hybrid-cloud setup introduces unwanted latency,(requires opening ports across different clouds), and incurs substantial external bandwidth costs as images are pulled and pushed across two distinct cloud providers.
+*   **A quick solution:** Move the Buildbot Master from DigitalOcean to AWS, hosting it inside the exact same Virtual Private Cloud (VPC) and subnet as the EC2 workers. This simplifies stuff, drops communication latency to negligible timeouts, and keeps all build traffic on AWS's high-speed local network.
 
 ### Monolithic CI Configuration (Imperative `master.cfg`)
 *   **Description of the problem:** The entire build pipeline is defined imperatively in a monolithic Python file (`master.cfg`). A single syntax error or typo (such as unescaped curly braces) immediately crashes the entire Buildbot daemon, breaking the CI system for all users. Developers cannot modify the build process of their own repositories without modifying the infrastructure code itself.
-*   **A quick solution proposal:** Move toward a declarative CI/CD model (such as GitHub Actions or GitLab CI/CD). The infrastructure team should only maintain generic AWS-backed runners, while the development teams define their build and test configurations in simple `.github/workflows/*.yml` files stored directly in their respective package repositories.
+*   **A quick solution proposal:** While standard GitHub-hosted runners lack the kernel privileges (such as `/dev/loop` loopback devices and user namespaces) required to build and format raw OS disk images, we can move to a declarative model by using **self-hosted GitHub Actions runners on ephemeral AWS EC2 instances** (e.g., using an orchestrator like Philips Labs' Terraform module). This keeps the pipeline configuration declarative in `.github/workflows/` within the repo, while providing the necessary host-level privileges to construct the `.img` files. Lightweight code checks and node compilation can run on standard, free GitHub-hosted runners.
 
 ### State Management (Local SQLite Database)
 *   **Description of the problem:** Buildbot keeps all build records, state history, and queue management inside a single local SQLite file on the Master container's hard drive. If the DigitalOcean droplet suffers disk corruption or database locks, the entire history is lost and the orchestrator cannot function. This prevents us from running multiple Masters for high availability.
