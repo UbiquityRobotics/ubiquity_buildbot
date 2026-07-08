@@ -1,69 +1,84 @@
-# system architecture (the puppet master model)
+# System Architecture (The Puppet Master Model)
 
-this document explains exactly how the ubiquity robotics build system works under the hood. if you are wondering how digitalocean, aws, buildbot, and rpi-image-gen all fit together to build a 4gb ubuntu image for a robot, read this.
+This document explains exactly how the Ubiquity Robotics build system works under the hood. If you are wondering how DigitalOcean, AWS, Buildbot, and `rpi-image-gen` all fit together to build a 4GB Ubuntu image for a robot, read this.
 
-## 1. the orchestrator (the puppet master)
+---
 
-everything starts on the digitalocean server. there is a docker container running the buildbot master program here. 
+## 1. The Orchestrator (The Puppet Master)
 
-this server is the puppet master. it does absolutely zero compiling or building itself. it just sits there exposing a web ui, and when you click "start build", it orchestrates the process.
+Everything starts on the DigitalOcean server. There is a Docker container running the Buildbot Master program here. 
 
-**how is the master configured?**
-- **the deployment:** the buildbot master is run via a docker container. when deployed, it uses a docker volume (e.g. `-v /opt/buildbot/creds:/creds`) to map files from the digitalocean host hard drive directly into the container.
-- **creds.py:** because of this volume mapping, the `creds.py` file (which contains the highly sensitive aws api keys and secrets) is injected at runtime. it is never committed to github and never baked into the docker image. this keeps the system secure.
-- **master.cfg:** this is the main python brain. it defines the builders, the web ui ports, and the exact step-by-step sequence of shell commands to execute.
-- **workers.py:** this script specifically manages the aws compute. it imports the keys from `creds.py` to authenticate with aws, and defines the exact amazon machine image (ami) ids, instance sizes (like t4g.xlarge for arm64), and the `cloud_init_script` needed to spin up the ephemeral workers on demand.
+This server acts as the "Puppet Master." It does absolutely zero compiling or building itself. It just sits there exposing a Web UI, and when you click "Start Build", it orchestrates the process.
 
-## 2. spawning the compute (the puppet)
+### How is the Master configured?
+*   **The Deployment:** The Buildbot Master is run via a Docker container. When deployed, it uses a Docker volume (e.g., `-v /opt/buildbot/creds:/creds`) to map files from the DigitalOcean host hard drive directly into the container.
+*   **creds.py:** Because of this volume mapping, the `creds.py` file (which contains the highly sensitive AWS API keys and secrets) is injected at runtime. It is never committed to GitHub and never baked into the Docker image. This keeps the system secure.
+*   **master.cfg:** This is the main Python brain. It defines the builders, the Web UI ports, and the exact step-by-step sequence of shell commands to execute.
+*   **workers.py:** This script specifically manages the AWS compute. It imports the keys from `creds.py` to authenticate with AWS, and defines the exact Amazon Machine Image (AMI) IDs, instance sizes (like `t4g.xlarge` for ARM64), and the `cloud_init_script` needed to spin up the ephemeral workers on demand.
 
-when a build is triggered, the master uses the python `boto3` library to send an api call to amazon web services (aws). it essentially tells aws: "hey amazon, boot up a new t4g.xlarge ec2 instance, and when it boots, run this startup script."
+---
 
-## 3. the handshake (the persistent tunnel)
+## 2. Spawning the Compute (The Puppet)
 
-when the aws instance finishes booting, it runs its startup script. the script installs dependencies and starts the `buildbot-worker` program.
-the worker then reaches out across the public internet *back* to the digitalocean master's ip address.
+When a build is triggered, the Master uses the Python `boto3` library to send an API call to Amazon Web Services (AWS). It essentially tells AWS: "Hey Amazon, boot up a new `t4g.xlarge` EC2 instance, and when it boots, run this startup script."
 
-they perform a handshake and establish a secure tcp connection (using the twisted perspective broker protocol). **this connection stays open for the entire duration of the build.** 
+---
 
-while that connection is open, the back-and-forth looks like this:
-- master: "do this."
-- worker: "okay, doing it. here is the terminal output... done."
+## 3. The Handshake (The Persistent Tunnel)
 
-## 4. where rpi-image-gen comes into play
+When the AWS instance finishes booting, it runs its startup script. The script installs dependencies and starts the `buildbot-worker` program. 
 
-the digitalocean master (`ubiquity_buildbot` repo) only manages the infrastructure (turning servers on and off, reporting success/failure to the web ui). it doesn't know how to build a robot image.
+The worker then reaches out across the public internet *back* to the DigitalOcean Master's IP address.
 
-so, the very first command the master sends to the aws worker is: 
-"run `git clone https://github.com/ubiquityrobotics/rpi-image-gen`"
+They perform a handshake and establish a secure TCP connection (using the Twisted Perspective Broker protocol). **This connection stays open for the entire duration of the build.** 
 
-the `rpi-image-gen` repository is the actual instruction manual. once the worker downloads it, almost everything that happens next is driven by the code inside that repo.
-- the master tells the worker: "run `rpi-image-gen/setup_ros2_env.sh`"
-- the master tells the worker: "use podman to run `rpi-image-gen/build.sh`"
+While that connection is open, the back-and-forth looks like this:
+*   **Master:** "Do this."
+*   **Worker:** "Okay, doing it. Here is the terminal output... Done."
 
-## 5. the execution and the sandbox boundary
+---
 
-the worker executes the build using a tool called `mmdebstrap` and `podman unshare`. 
+## 4. Where `rpi-image-gen` Comes into Play
 
-what is podman unshare and why do we need it?
-when building an operating system image, the build script needs `root` (admin) privileges to create files owned by root inside the image. but running automated ci scripts as actual root on the aws machine is super dangerous.
+The DigitalOcean Master (`ubiquity_buildbot` repo) only manages the infrastructure (turning servers on and off, reporting success/failure to the Web UI). It doesn't know how to build a robot image.
 
-so, we use `podman unshare`. it creates a "user namespace sandbox". it's basically a magic trick:
-- inside the sandbox, `mmdebstrap` thinks it has root powers. it can create root-owned files and format the ubuntu filesystem.
-- outside the sandbox, the aws host machine knows it is just a regular, unprivileged user. we get to build root filesystems without ever needing dangerous sudo access.
+So, the very first command the Master sends to the AWS worker is: 
+`run git clone https://github.com/ubiquityrobotics/rpi-image-gen`
 
-this creates a critical boundary between the **host** and the **target**:
-*   **the host (the engine):** the aws ec2 instance running debian 12. it only runs generic tools like podman. it knows nothing about robots.
-*   **the target (the car):** `mmdebstrap` creates a completely isolated, fake linux file system (a "chroot" sandbox) on the hard drive. inside that fake file system, it connects to ubuntu's servers, downloads ubuntu 24.04 (noble), installs ros 2, and compiles the robot code.
+The `rpi-image-gen` repository is the actual instruction manual. Once the worker downloads it, almost everything that happens next is driven by the code inside that repo:
+*   The Master tells the worker: "Run `rpi-image-gen/setup_ros2_env.sh`"
+*   The Master tells the worker: "Use Podman to run `rpi-image-gen/build.sh`"
 
-## 6. the teardown
+---
 
-once the ubuntu image is fully constructed inside the sandbox, compressed, and uploaded to digitalocean spaces, the worker tells the master it is finished.
+## 5. The Execution and the Sandbox Boundary
 
-the master sends one final api call to aws: "terminate the instance." aws deletes the ec2 server and permanently destroys its hard drive.
+The worker executes the build using a tool called `mmdebstrap` and `podman unshare`. 
 
-## summary
+### What is `podman unshare` and why do we need it?
+When building an operating system image, the build script needs `root` (admin) privileges to create files owned by root inside the image. But running automated CI scripts as actual root on the AWS machine is super dangerous.
 
-- `ubiquity_buildbot` is the puppet master.
-- aws ec2 is the puppet.
-- `rpi-image-gen` is the script the puppet acts out.
-- the host (aws) and the target (the ubuntu image) are strictly isolated.
+So, we use `podman unshare`. It creates a "user namespace sandbox." It's basically a magic trick:
+*   **Inside the sandbox:** `mmdebstrap` thinks it has root powers. It can create root-owned files and format the Ubuntu filesystem.
+*   **Outside the sandbox:** The AWS host machine knows it is just a regular, unprivileged user. We get to build root filesystems without ever needing dangerous `sudo` access.
+
+This creates a critical boundary between the **Host** and the **Target**:
+*   **The Host (The Engine):** The AWS EC2 instance running Debian 12. It only runs generic tools like Podman. It knows nothing about robots.
+*   **The Target (The Car):** `mmdebstrap` creates a completely isolated, fake Linux file system (a "chroot" sandbox) on the hard drive. Inside that fake file system, it connects to Ubuntu's servers, downloads Ubuntu 24.04 (Noble), installs ROS 2, and compiles the robot code.
+
+---
+
+## 6. The Teardown
+
+Once the Ubuntu image is fully constructed inside the sandbox, compressed, and uploaded to DigitalOcean Spaces, the worker tells the Master it is finished.
+
+The Master sends one final API call to AWS: "Terminate the instance." AWS deletes the EC2 server and permanently destroys its hard drive.
+
+---
+
+## Summary
+
+*   `ubiquity_buildbot` is the puppet master.
+*   AWS EC2 is the puppet.
+*   `rpi-image-gen` is the script the puppet acts out.
+*   The host (AWS) and the target (the Ubuntu image) are strictly isolated.

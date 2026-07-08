@@ -8,7 +8,7 @@ This repository contains the infrastructure configuration for the Ubiquity Robot
 
 ## Architecture Overview
 
-## Architecture Diagram
+### Architecture Diagram
 
 ![Architecture Diagram](./Build_bot_architecture_diagram.jpeg)
 
@@ -16,7 +16,8 @@ The system uses a hybrid-cloud Master/Worker architecture:
 
 1.  **The Master (DigitalOcean):** A Docker container running Buildbot. It hosts the Web UI (`https://build.ubiquityrobotics.com`) and manages the build queue. It does **not** compile code itself.
 2.  **The Workers (AWS EC2):** When a build is triggered, the Master uses the `boto3` API to dynamically spin up ephemeral AWS EC2 instances (e.g., `t4g.xlarge` ARM64 machines). 
-3.  **The Execution:** The AWS workers clone `rpi-image-gen` and use `podman` and `mmdebstrap` to build the target images inside a secure user namespace sandbox. Once finished, the EC2 instances are permanently destroyed.
+3.  **The Execution:** The AWS workers clone `rpi-image-gen` and use `podman` and `mmdebstrap` to build the target images inside a secure user namespace sandbox.
+4.  **The Teardown:** Once the build is completed and the final image is uploaded, the ephemeral AWS EC2 instances are permanently destroyed.
 
 For a deep dive into exactly how this works under the hood, read the [SYSTEM_ARCHITECTURE.md](./SYSTEM_ARCHITECTURE.md).
 

@@ -1,20 +1,58 @@
-modernization plan for the buildbot system
+# Modernization Plan for the Buildbot System
 
-so the current system is pretty fragile because it runs apt-get upgrade on every boot of the aws ec2 instance. this causes 60 minute timeouts when mirrors fail or dpkg locks up. also, the host is debian 12 but we are building ubuntu 24.04 noble target images, so adding ubuntu repos to the debian host breaks things (frankendebian problem).
+This document outlines our strategy to resolve the core performance bottlenecks and stability issues in the current Buildbot infrastructure.
 
-to fix this and make it take 10 mins instead of 40 mins:
+---
 
-1. use packer to bake a golden ami
-instead of running apt-get install podman qemu etc on every boot, we use hashicorp packer to make an ami that has all this stuff pre-installed. the worker will boot in 10 seconds.
+## 1. Problem
 
-2. pre-warm the apt cache
-the mmdebstrap podman step takes 20 mins because it downloads huge ubuntu debs. we can just have packer download these debs into /var/cache/apt/archives on the ami so mmdebstrap finds them instantly.
+The current build system is fragile and suffers from major speed bottlenecks (often taking 40–60 minutes per run). This fragility stems from two primary issues:
+1.  **Dynamic Dependency Installs on Boot:** Ephemeral AWS EC2 workers run `apt-get update && apt-get upgrade` directly during their initial boot sequence. This leaves builds vulnerable to network latency, package repository mirror failures, or `dpkg` locking issues, which frequently lead to 60-minute timeouts.
+2.  **The FrankenDebian Mismatch:** The AWS host system is running Debian 12, but we are building Ubuntu 24.04 (Noble) target images. Adding Ubuntu repositories directly to the Debian host to install packaging tools creates host conflicts, dependency drift, and makes it incredibly difficult to reproduce builds reliably.
 
-3. use zstd instead of xz
-the digital ocean script uses xz -T0 which takes 15 mins to compress a 4gb image. changing it to zstd -T0 -10 will take like 2 minutes.
+---
 
-4. fix the gpg key crash
-the ros2.yaml runs curl ... | gpg --dearmor inside a sandbox. gpg crashes because there is no home dir in the sandbox, which caused the 502 errors and timeouts. fix is to just download the .asc key, commit it to the rpi-image-gen repo, and copy it locally using cp instead of curl and gpg.
+## 2. Modernization Plan
 
-how to deploy this safely:
-create a new branch. clone it to a new folder on the digital ocean droplet like /root/ubiquity_buildbot_v2. run it on port 8011 and 9990 so it doesnt clash with production. test it, then swap.
+To reduce build times to under 10 minutes and guarantee stability, we will execute the following four improvements:
+
+### Step 1: Bake a Golden AMI
+*   **What is the issue:** Spawning a clean EC2 instance and compiling host packages from scratch on every single build is slow, bandwidth-heavy, and prone to random network failure.
+*   **How to solve it (steps):**
+    1. Define a HashiCorp Packer configuration (`packer.json`).
+    2. Build a base Debian 12 AMI containing pre-installed packages for `podman`, `qemu-user-static`, and `buildbot-worker`.
+    3. Update `workers.py` to launch workers using this pre-built Golden AMI.
+*   **How will the solution be helpful:** This cuts worker initialization and handshake time down from several minutes to under 10 seconds, eliminating all host boot-time dependencies.
+
+### Step 2: Pre-warm the APT Cache
+*   **What is the issue:** The `mmdebstrap` step inside Podman downloads gigabytes of Ubuntu `.deb` packages on every build, wasting roughly 20 minutes downloading the same static assets over and over.
+*   **How to solve it (steps):**
+    1. During the Packer image creation process, pre-download common Ubuntu/ROS package dependencies into `/var/cache/apt/archives` on the golden image.
+    2. Configure `mmdebstrap` inside the build container to utilize the local host cache directory.
+*   **How will the solution be helpful:** `mmdebstrap` will resolve packages locally, reducing target OS compilation times down to under 5 minutes.
+
+### Step 3: Switch Compression Algorithms (ZSTD instead of XZ)
+*   **What is the issue:** The digital-ocean scripts currently compress the final 4GB image using `xz -T0`, which takes up to 15 minutes of compute time.
+*   **How to solve it (steps):**
+    1. Change the compression utility in the build pipeline from `xz` to `zstd`.
+    2. Use multi-threaded configuration flags (e.g., `zstd -T0 -10`).
+*   **How will the solution be helpful:** Compression time will drop from 15 minutes to under 2 minutes with virtually zero difference in final file size.
+
+### Step 4: Fix the GPG Key Sandbox Crash
+*   **What is the issue:** When trying to add the ROS 2 repository, the container runs `curl ... | gpg --dearmor` inside a user namespace sandbox. This crashes with a 502 error because the isolated sandbox environment lacks a mapped user home directory where `gpg` can write its temporary keyring.
+*   **How to solve it (steps):**
+    1. Download the static ROS 2 repository GPG key (`.asc`) directly on the workstation.
+    2. Commit the `.asc` file directly to the `rpi-image-gen` repository under a static configuration directory.
+    3. Update the Ansible playbook to simply copy the local file into `/usr/share/keyrings/` instead of fetching it via curl and gpg.
+*   **How will the solution be helpful:** This cleanly avoids sandbox home directory constraints, preventing execution crashes and timeouts.
+
+---
+
+## 3. Testing Plan
+
+To ensure these infrastructure changes do not impact production, we will deploy and test them in isolation:
+
+1.  **Isolated Droplet Clone:** We will clone the current configuration to a separate, isolated folder on the DigitalOcean server (e.g., `/root/ubiquity_buildbot_v2`).
+2.  **Unique Network Port Mapping:** We will configure the test master to listen on port `8011` (Web UI) and port `9990` (Worker connections) to prevent conflicts with the production master.
+3.  **End-to-End Build Test:** Trigger a test run on the isolated master. Verify that the ephemeral AWS worker boots from the Golden AMI, pulls cached packages, builds the target Ubuntu image, compresses it using ZSTD, and successfully uploads the final artifact to our storage.
+4.  **Production Swap:** Once validated, we will stop the production master, update its configurations, and swap the test environment into production.

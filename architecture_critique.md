@@ -1,9 +1,29 @@
-architecture critique and ultimate improvements
+# Architecture Critique and Future Enhancements
 
-the current architecture is master on digitalocean, workers on aws ec2. this hybrid cloud thing means extra latency and bandwidth costs. we should just move the master to aws into the same vpc as the workers. 
+This document evaluates the long-term design flaws of our current Buildbot setup and proposes modern solutions to transition to a more reliable, orthogonal, and scalable system.
 
-also, using buildbot means everything is hardcoded in a giant python master.cfg file. if there's a syntax error there (like we had with the unescaped curly braces), the whole ci breaks for everyone. the modern way is declarative ci like github actions or gitlab ci, where the infra team just provides dummy aws runners, and the developers write yaml files in their own repos. it's way more orthogonal.
+---
 
-state management is also bad right now. buildbot uses a local sqlite file. if the digitalocean droplet dies, the ci is dead. if we stick with buildbot, we should use a real database like postgres on aws rds, so we can run multiple masters behind a load balancer for high availability.
+## 1. Architectural Critiques
 
-finally, building 4gb disk images with mmdebstrap for every tiny code change in zenoh or ros is crazy slow. the long term goal should be to just build a thin base ubuntu image once. then, all the ros2 and robot code should just be packaged as lightweight docker containers (or snaps). when you push code, ci just builds a 50mb docker image in 30 seconds. the robots out in the world just pull the docker container updates over-the-air using something like aws iot greengrass or balena.
+### Master/Worker Cloud Distribution (Hybrid Cloud Architecture)
+*   **Description of the problem:** The Buildbot Master runs on DigitalOcean, while the ephemeral Workers are spawned on AWS EC2. This hybrid-cloud setup introduces unnecessary latency, complicates firewall configurations (requires opening ports across different clouds), and incurs substantial external egress bandwidth costs as images are pulled and pushed across providers.
+*   **A quick solution proposal:** Move the Buildbot Master from DigitalOcean to AWS, hosting it inside the same Virtual Private Cloud (VPC) and subnet as the workers. This simplifies security groups, drops communication latency to sub-milliseconds, and keeps all build traffic on AWS's high-speed local network.
+
+### Monolithic CI Configuration (Imperative `master.cfg`)
+*   **Description of the problem:** The entire build pipeline is defined imperatively in a monolithic Python file (`master.cfg`). A single syntax error or typo (such as unescaped curly braces) immediately crashes the entire Buildbot daemon, breaking the CI system for all users. Developers cannot modify the build process of their own repositories without modifying the infrastructure code itself.
+*   **A quick solution proposal:** Move toward a declarative CI/CD model (such as GitHub Actions or GitLab CI/CD). The infrastructure team should only maintain generic AWS-backed runners, while the development teams define their build and test configurations in simple `.github/workflows/*.yml` files stored directly in their respective package repositories.
+
+### State Management (Local SQLite Database)
+*   **Description of the problem:** Buildbot keeps all build records, state history, and queue management inside a single local SQLite file on the Master container's hard drive. If the DigitalOcean droplet suffers disk corruption or database locks, the entire history is lost and the orchestrator cannot function. This prevents us from running multiple Masters for high availability.
+*   **A quick solution proposal:** Migrate the state database from SQLite to a managed PostgreSQL instance on AWS Relational Database Service (RDS). This decouples state from compute, allows automated database backups, and lets us run multiple Master containers behind a load balancer.
+
+### Monolithic SD Card Disk Image Builds
+*   **Description of the problem:** We rebuild a monolithic 4GB SD card disk image using `mmdebstrap` for every single software change (e.g., small modifications in `zenoh` or a ROS node). This is incredibly slow and highly inefficient. It also makes updating robots in the field difficult, as they must re-flash the entire image.
+*   **A quick solution proposal:** Split the build system into a two-layer model. Build a thin, static base Ubuntu system image once. Package all ROS 2 nodes, robot control packages, and dependencies as lightweight Docker containers (or Snaps). When developers push code changes, the CI/CD pipeline only builds and tests a small 50MB container in a few seconds. The robots out in the field can pull container updates over-the-air using a management tool like AWS IoT Greengrass or Balena.
+
+---
+
+## 2. Final Remarks
+
+The current pipeline was a great starting point for bootstrapping our automated builds, but its monolithic and hybrid-cloud nature now acts as a bottleneck for our engineering velocity. By gradually decoupling the state, moving compute to a single cloud network, and migrating to containerized deployment strategies, we can transition to a modern infrastructure that is highly orthogonal, secure, and resilient.
