@@ -68,9 +68,20 @@ This creates a critical boundary between the **Host** and the **Target**:
 
 ---
 
-## 6. The Teardown
+## 6. Image Storage and Retention (DigitalOcean Spaces)
 
-Once the Ubuntu image is fully constructed inside the sandbox, compressed, and uploaded to DigitalOcean Spaces, the worker tells the Master it is finished.
+Once the Ubuntu image is fully constructed and compressed inside the sandbox, it needs to be stored for users to download.
+
+The Buildbot Master generates a pre-signed S3 upload URL using `boto3`. The AWS worker then uses `curl` to `PUT` the 2GB compressed `.xz` file directly into our **DigitalOcean Spaces** bucket (specifically, the `ubiquity-pi-image` bucket in the `sfo2` region). It applies a `public-read` ACL so anyone can download it.
+
+**What happens to older images?** 
+Buildbot *does not* delete old images. Every subsequent successful build simply uploads a new file with a new timestamp into the bucket. To prevent infinite storage costs, retention is handled entirely outside of this codebase via a manual **Lifecycle Rule** configured in the DigitalOcean Spaces web dashboard (e.g., automatically deleting artifacts older than 30 or 60 days).
+
+---
+
+## 7. The Teardown
+
+After the artifact is safely uploaded to DigitalOcean Spaces, the worker tells the Master it is finished.
 
 The Master sends one final API call to AWS: "Terminate the instance." AWS deletes the EC2 server and permanently destroys its hard drive.
 
